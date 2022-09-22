@@ -1,0 +1,26 @@
+{
+  "name": "process-announcer",
+  "version": "1.0.0",
+  "description": "สำหรับการทำค่ายในมหาลัย",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LittleNa1000/process-announcer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/LittleNa1000/process-announcer/issues"
+  },
+  "homepage": "https://github.com/LittleNa1000/process-announcer#readme",
+  "dependencies": {
+    "@line/bot-sdk": "^7.5.2",
+    "axios": "^0.27.2",
+    "dotenv": "^16.0.2",
+    "express": "^4.18.1"
+  }
+}
