@@ -28,12 +28,18 @@ async function initAnnounce(c) {
 
 const announce = async () => {
   if (idx < slots.length) {
-    const slot = slots[idx];
+    let slot = slots[idx];
+    if (BEGIN_TIME !== -1 && shift !== 0 && from <= idx) {
+      slot[BEGIN_TIME] = `${slot[BEGIN_TIME]} (+${shift})`;
+    }
+    if (END_TIME !== -1 && shift !== 0 && from <= idx) {
+      slot[END_TIME] = `${slot[END_TIME]} (+${shift})`;
+    }
     const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
       BEGIN_TIME !== -1 &&
       END_TIME !== -1 &&
       slot[BEGIN_TIME] !== slot[END_TIME]
-        ? "⏱️ `" + slot[BEGIN_TIME] + "` - `" + slot[END_TIME] + "`"
+        ? "⏱️ `" + slot[BEGIN_TIME] + " - " + slot[END_TIME] + "`"
         : BEGIN_TIME !== -1
         ? "🔔 `" + slot[BEGIN_TIME] + "`"
         : ""
@@ -65,7 +71,7 @@ const addReceiverId = (id) => {
   if (receiverId.length === 1) {
     timeoutId = setTimeout(announce, 4000);
   }
-  return receiverId;
+  return idx;
 };
 
 const removeReceiverId = (id) => {
@@ -75,12 +81,11 @@ const removeReceiverId = (id) => {
   }
   if (receiverId.length === 0) {
     clearTimeout(timeoutId);
-    return ["empty"];
   }
-  return receiverId;
+  return;
 };
 
-const plusProcess = (arg, isNegative) => {
+const plusProcess = async (arg, isNegative) => {
   let [, duration, addSlot] = arg;
   addSlot =
     addSlot === "now"
@@ -101,6 +106,20 @@ const plusProcess = (arg, isNegative) => {
   }
   shift = Math.max(0, isNegative ? shift - duration : shift + duration);
   from = idx + addSlot;
+  await client
+    .getGroupMemberProfile(
+      "C04c176c8b9b68141de3069a9d6b27411",
+      "U846856f0da9cfd54706db8cb5dabd17a"
+    )
+    .then((profile) => {
+      console.log(profile.displayName);
+      console.log(profile.userId);
+      console.log(profile.pictureUrl);
+      console.log(profile.statusMessage);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
   return [duration, shift, from];
 };
 

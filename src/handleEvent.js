@@ -12,17 +12,18 @@ const handleEvent = async (event) => {
     event.message.text.charAt(0) === "!" &&
     event.message.text.replaceAll("!", "").trim().length > 0
   ) {
-    console.log(event);
+    const timeStamp = new Date(event.timestamp);
+    console.log(timeStamp.toLocaleString(), event.message.text, event.source);
     if (event.message.text.substring(1, 6) === "start") {
       const id =
         event.source.type === "group"
           ? event.source.groupId
           : event.source.userId;
-      const receiverId = addReceiverId(id);
+      const idx = addReceiverId(id);
       return client
         .replyMessage(event.replyToken, {
           type: "text",
-          text: `${receiverId.toString()}`,
+          text: `เริ่มประกาศตั้งแต่ Slot #${idx} น้า`,
         })
         .catch((err) => {
           console.log(err);
@@ -32,7 +33,7 @@ const handleEvent = async (event) => {
         event.source.type === "group"
           ? event.source.groupId
           : event.source.userId;
-      const receiverId = removeReceiverId(id);
+      removeReceiverId(id);
       return;
     } else if (
       event.message.text.substring(1, 2) === "+" ||
@@ -40,14 +41,14 @@ const handleEvent = async (event) => {
     ) {
       try {
         const op = event.message.text.substring(1, 2);
-        const [duration, shift, from] = plusProcess(
+        const [duration, shift, from] = await plusProcess(
           event.message.text.split(" "),
           op === "-" ? true : false
         );
         const replyText =
           shift === 0
             ? `${op}Process ${duration} นาที *Setzero* ตั้งแต่ Slot #${from} น้างับ :P`
-            : `${op}Process ${duration} นาที รวม ${shift} นาที ตั้งแต่ Slot #${from} น้างับ :P`;
+            : `${op}Process ${duration} นาที รวม ${shift} นาที ตั้งแต่ Slot #${from} น้างับ:P`;
         return client
           .replyMessage(event.replyToken, {
             type: "text",
