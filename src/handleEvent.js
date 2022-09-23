@@ -43,20 +43,11 @@ const handleEvent = async (event) => {
         const op = event.message.text.substring(1, 2);
         const [duration, shift, from] = await plusProcess(
           event.message.text.split(" "),
-          op === "-" ? true : false
+          op === "-" ? true : false,
+          event.source.type === "group" ? event.source.groupId : null,
+          event.source.userId
         );
-        const replyText =
-          shift === 0
-            ? `${op}Process ${duration} นาที *Setzero* ตั้งแต่ Slot #${from} น้างับ :P`
-            : `${op}Process ${duration} นาที รวม ${shift} นาที ตั้งแต่ Slot #${from} น้างับ:P`;
-        return client
-          .replyMessage(event.replyToken, {
-            type: "text",
-            text: replyText,
-          })
-          .catch((err) => {
-            console.log(err);
-          });
+        return;
       } catch (err) {
         return client
           .replyMessage(event.replyToken, {

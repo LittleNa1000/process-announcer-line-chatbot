@@ -85,8 +85,9 @@ const removeReceiverId = (id) => {
   return;
 };
 
-const plusProcess = async (arg, isNegative) => {
+const plusProcess = async (arg, isNegative, groupId, userId) => {
   let [, duration, addSlot] = arg;
+  let name = "";
   addSlot =
     addSlot === "now"
       ? 0
@@ -112,14 +113,23 @@ const plusProcess = async (arg, isNegative) => {
       "U846856f0da9cfd54706db8cb5dabd17a"
     )
     .then((profile) => {
-      console.log(profile.displayName);
-      console.log(profile.userId);
-      console.log(profile.pictureUrl);
-      console.log(profile.statusMessage);
+      name = profile.displayName;
     })
     .catch((err) => {
       console.log(err);
     });
+  const replyText = `${isNegative ? "-" : "+"}Process ${duration} นาที ${
+    shift === 0 ? "*Setzero*" : `รวม ${shift} นาที`
+  } ตั้งแต่ Slot #${from} น้างับ :P\nสั่งโดย *${name}*`;
+  const message = {
+    type: "text",
+    text: replyText,
+  };
+  receiverId.forEach(async (id) => {
+    await client.pushMessage(id, message).catch((err) => {
+      console.log(err);
+    });
+  });
   return [duration, shift, from];
 };
 
