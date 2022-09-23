@@ -15,8 +15,23 @@ const announce = async () => {
   });
   return;
 };
-const addReceiverId = (id) => {
-  receiverId.push(id);
-  announce();
+const addReceiverId = async (id) => {
+  if (receiverId.indexOf(id) === -1) {
+    receiverId.push(id);
+  }
+  if (receiverId.length > 0) {
+    await announce();
+  }
+  return receiverId;
 };
-module.exports = { addReceiverId, initAnnounce };
+const removeReceiverId = (id) => {
+  const idx = receiverId.indexOf(id);
+  if (idx !== -1) {
+    receiverId.splice(idx, 1);
+  }
+  if (receiverId.length === 0) {
+    return ["empty"];
+  }
+  return receiverId;
+};
+module.exports = { initAnnounce, addReceiverId, removeReceiverId };

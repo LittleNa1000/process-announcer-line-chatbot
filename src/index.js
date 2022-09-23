@@ -19,8 +19,8 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
     return events.length > 0
       ? await events.map((item) => handleEvent(item))
       : res.status(200).send("OK");
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    console.log(err);
     res.status(500).end();
   }
 });
