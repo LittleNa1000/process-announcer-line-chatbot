@@ -17,16 +17,33 @@ let timeoutId = null;
 let receiverId = [];
 let slots = [];
 let idx = 1;
+let shift = 0;
+let from = 0;
 
 async function initAnnounce(c) {
   client = c;
   slots = await readProcess();
+  // console.log(slots.slice(0, 10));
 }
 
 const announce = async () => {
   if (idx < slots.length) {
     const slot = slots[idx];
-    const text = `${slot[NUM]} ${slot[BEGIN_TIME]}-${slot[END_TIME]}\n${slot[OWNER]} ${slot[NAME]}`;
+    const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
+      BEGIN_TIME !== -1 &&
+      END_TIME !== -1 &&
+      slot[BEGIN_TIME] !== slot[END_TIME]
+        ? "⏱️ `" + slot[BEGIN_TIME] + "` - `" + slot[END_TIME] + "`"
+        : BEGIN_TIME !== -1
+        ? "🔔 `" + slot[BEGIN_TIME] + "`"
+        : ""
+    }\n${OWNER !== -1 ? "💬 " + slot[OWNER] : ""} ${
+      NAME !== -1 ? '*"' + slot[NAME] + '"*' : ""
+    }\n${LEADER !== -1 ? "👑 *" + slot[LEADER] + "*" : ""}\n${
+      LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""
+    }`;
+    if (false) {
+    }
     const message = {
       type: "text",
       text: text,
@@ -63,4 +80,28 @@ const removeReceiverId = (id) => {
   return receiverId;
 };
 
-module.exports = { initAnnounce, addReceiverId, removeReceiverId };
+const plusProcess = (arg, isNegative) => {
+  let [, duration, addSlot] = arg;
+  addSlot =
+    addSlot === "now"
+      ? 0
+      : addSlot === "next"
+      ? 1
+      : Math.max(0, parseInt(addSlot));
+  duration = parseInt(duration);
+  if (
+    !(
+      Number.isInteger(duration) &&
+      Number.isInteger(addSlot) &&
+      idx + addSlot < slots.length &&
+      duration > 0
+    )
+  ) {
+    throw "wrong argument";
+  }
+  shift = Math.max(0, isNegative ? shift - duration : shift + duration);
+  from = idx + addSlot;
+  return [duration, shift, from];
+};
+
+module.exports = { initAnnounce, addReceiverId, removeReceiverId, plusProcess };

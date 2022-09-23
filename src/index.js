@@ -25,8 +25,8 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
   }
 });
 
-app.listen(env.PORT, () => {
+app.listen(env.PORT, async () => {
   initHandleEvent(client);
-  initAnnounce(client);
+  await initAnnounce(client);
   console.log(`on port ${env.PORT}`);
 });
