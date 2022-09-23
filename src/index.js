@@ -1,8 +1,8 @@
 const line = require("@line/bot-sdk");
 const express = require("express");
-const axios = require("axios").default;
 const dotenv = require("dotenv");
-const { handleEvent } = require("./handleEvent");
+const { handleEvent, initHandleEvent } = require("./handleEvent");
+const { initAnnounce } = require("./announce");
 
 const env = dotenv.config().parsed;
 const app = express();
@@ -16,9 +16,8 @@ const client = new line.Client(lineConfig);
 app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
   try {
     const events = req.body.events;
-    console.log(events);
     return events.length > 0
-      ? await events.map((item) => handleEvent(item, client))
+      ? await events.map((item) => handleEvent(item))
       : res.status(200).send("OK");
   } catch (error) {
     console.log(error);
@@ -26,6 +25,8 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log("on port 3000");
+app.listen(env.PORT, () => {
+  initHandleEvent(client);
+  initAnnounce(client);
+  console.log(`on port ${env.PORT}`);
 });
