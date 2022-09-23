@@ -14,7 +14,7 @@ const handleEvent = async (event) => {
         event.source.type === "group"
           ? event.source.groupId
           : event.source.userId;
-      const receiverId = await addReceiverId(id);
+      const receiverId = addReceiverId(id);
       return client
         .replyMessage(event.replyToken, {
           type: "text",

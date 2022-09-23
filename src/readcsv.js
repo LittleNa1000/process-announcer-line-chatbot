@@ -1,9 +1,15 @@
-const csv = require("@fast-csv/parse");
+const fs = require("fs");
+const { parse } = require("csv-parse");
 
-csv
-  .parseFile("./resources/test.csv", { headers: true })
-  .on("error", (error) => console.error(error))
-  .on("data", (row) => {
-    console.log(`ROW=${JSON.stringify(row)}`);
-  })
-  .on("end", (rowCount) => console.log(`Parsed ${rowCount} rows`));
+const csvPromise = new Promise((resolve, reject) => {
+  fs.readFile("./resources/30-5-65.csv", (err, fileData) => {
+    parse(fileData, {}, function (err, rows) {
+      resolve(rows);
+    });
+  });
+});
+async function readProcess() {
+  return await csvPromise;
+}
+
+module.exports = { readProcess };
