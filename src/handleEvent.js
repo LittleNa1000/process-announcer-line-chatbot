@@ -67,7 +67,7 @@ const handleEvent = async (event) => {
       return client
         .replyMessage(event.replyToken, {
           type: "text",
-          text: `📁ตอนนี้ Process เป็นไฟล์ ${PROCESS_FILE_NAME} งับ`,
+          text: "📁ตอนนี้ Process เป็นไฟล์ `" + PROCESS_FILE_NAME + "` งับ",
         })
         .catch((err) => {
           console.log(err);
