@@ -112,11 +112,16 @@ const addReceiverId = (id) => {
   if (receiverId.indexOf(id) === -1) {
     receiverId.push(id);
   }
-  if (receiverId.length === 1) {
+  if (receiverId.length == 1) {
     const currentTime = getCurrentTime();
     while (currentTime > getNextSlotTime()) {
       idx++;
       updateCurrentShift();
+      if (idx + 1 >= slots.length) {
+        idx = 0;
+        currentShift = 0;
+        break;
+      }
     }
     intervalId = setInterval(announce, 2000);
   }
@@ -128,8 +133,9 @@ const removeReceiverId = (id) => {
   if (i !== -1) {
     receiverId.splice(i, 1);
   }
-  if (receiverId.length === 0) {
+  if (receiverId.length == 0) {
     idx = 0;
+    currentShift = 0;
     clearInterval(intervalId);
   }
   return;
