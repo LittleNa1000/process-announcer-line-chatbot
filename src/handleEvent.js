@@ -13,7 +13,11 @@ const handleEvent = async (event) => {
     event.message.text.replaceAll("!", "").trim().length > 0
   ) {
     const timeStamp = new Date(event.timestamp);
-    console.log(timeStamp.toLocaleString(), event.message.text, event.source);
+    console.log(
+      timeStamp.toLocaleString(),
+      event.source.userId,
+      event.message.text
+    );
     if (event.message.text.substring(1, 6) === "start") {
       const id =
         event.source.type === "group"
@@ -52,7 +56,7 @@ const handleEvent = async (event) => {
         return client
           .replyMessage(event.replyToken, {
             type: "text",
-            text: "ใส่คำสั่งบวกลบโปรเซสผิดงับ\nต้องแบบนี้น้า !+ (จำนวนนาที) (จำนวน slot ที่จะบวก)",
+            text: "ใส่คำสั่งบวกลบโปรเซสผิดงับ\nต้องแบบนี้น้า (!+ หรือ !-) (จำนวนนาที) (Slot)",
           })
           .catch((err) => {
             console.log(err);

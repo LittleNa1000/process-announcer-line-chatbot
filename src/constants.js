@@ -9,4 +9,5 @@ module.exports = Object.freeze({
   LEADER: 7,
   MEMBER: 8,
   DETAILS: 9,
+  PROCESS_FILE_NAME: "30-5-65.csv",
 });

@@ -13,27 +13,72 @@ const {
 } = require("./constants");
 
 let client = null;
-let timeoutId = null;
+let intervalId = null;
 let receiverId = [];
 let slots = [];
-let idx = 1;
-let shift = 0;
-let from = 0;
+let idx = 0;
+let shift = undefined;
+let currentShift = 0;
 
 async function initAnnounce(c) {
   client = c;
   slots = await readProcess();
+  shift = new Array(slots.length).fill(0);
   // console.log(slots.slice(0, 10));
 }
+async function getName(groupId, userId) {
+  let name = "Unknown";
+  if (groupId !== null) {
+    await client
+      .getGroupMemberProfile(groupId, userId)
+      .then((profile) => {
+        name = profile.displayName;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  } else {
+    await client
+      .getProfile(userId)
+      .then((profile) => {
+        name = profile.displayName;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+  return name;
+}
 
+function updateCurrentShift() {
+  currentShift += shift[idx];
+  currentShift = Math.max(0, currentShift);
+}
+function getCurrentTime() {
+  const currentDate = new Date();
+  return currentDate.getHours() * 60 + currentDate.getMinutes();
+}
+function getNextSlotTime() {
+  const nextSlot = slots[idx + 1][BEGIN_TIME].split(":").map((e) =>
+    Number.parseInt(e)
+  );
+  return (
+    nextSlot[0] * 60 + nextSlot[1] + Math.max(0, currentShift + shift[idx + 1])
+  );
+}
 const announce = async () => {
-  if (idx < slots.length) {
+  if (idx + 1 < slots.length) {
+    const nextSlotTime = getNextSlotTime();
+    const currentTime = getCurrentTime();
+    if (nextSlotTime > currentTime) return;
+    idx++;
+    updateCurrentShift();
     let slot = slots[idx];
-    if (BEGIN_TIME !== -1 && shift !== 0 && from <= idx) {
-      slot[BEGIN_TIME] = `${slot[BEGIN_TIME]} (+${shift})`;
+    if (BEGIN_TIME !== -1 && currentShift !== 0) {
+      slot[BEGIN_TIME] = `${slot[BEGIN_TIME]} (+${currentShift})`;
     }
-    if (END_TIME !== -1 && shift !== 0 && from <= idx) {
-      slot[END_TIME] = `${slot[END_TIME]} (+${shift})`;
+    if (END_TIME !== -1 && currentShift !== 0) {
+      slot[END_TIME] = `${slot[END_TIME]} (+${currentShift})`;
     }
     const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
       BEGIN_TIME !== -1 &&
@@ -48,8 +93,6 @@ const announce = async () => {
     }\n${LEADER !== -1 ? "👑 *" + slot[LEADER] + "*" : ""}\n${
       LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""
     }`;
-    if (false) {
-    }
     const message = {
       type: "text",
       text: text,
@@ -59,9 +102,9 @@ const announce = async () => {
         console.log(err);
       });
     });
-    idx++;
+  } else {
+    clearInterval(intervalId);
   }
-  timeoutId = setTimeout(announce, 4000);
 };
 
 const addReceiverId = (id) => {
@@ -69,58 +112,54 @@ const addReceiverId = (id) => {
     receiverId.push(id);
   }
   if (receiverId.length === 1) {
-    timeoutId = setTimeout(announce, 4000);
+    const currentTime = getCurrentTime();
+    while (currentTime > getNextSlotTime()) {
+      idx++;
+      updateCurrentShift();
+    }
+    intervalId = setInterval(announce, 2000);
   }
-  return idx;
+  return idx + 1;
 };
 
 const removeReceiverId = (id) => {
-  const idx = receiverId.indexOf(id);
-  if (idx !== -1) {
-    receiverId.splice(idx, 1);
+  const i = receiverId.indexOf(id);
+  if (i !== -1) {
+    receiverId.splice(i, 1);
   }
   if (receiverId.length === 0) {
-    clearTimeout(timeoutId);
+    idx = 0;
+    clearInterval(intervalId);
   }
   return;
 };
 
 const plusProcess = async (arg, isNegative, groupId, userId) => {
-  let [, duration, addSlot] = arg;
-  let name = "";
-  addSlot =
-    addSlot === "now"
-      ? 0
-      : addSlot === "next"
-      ? 1
-      : Math.max(0, parseInt(addSlot));
+  let [, duration, atSlot] = arg;
+  atSlot =
+    atSlot === "now"
+      ? idx
+      : atSlot === "next"
+      ? idx + 1
+      : Math.max(0, parseInt(atSlot));
   duration = parseInt(duration);
   if (
     !(
       Number.isInteger(duration) &&
-      Number.isInteger(addSlot) &&
-      idx + addSlot < slots.length &&
+      Number.isInteger(atSlot) &&
+      atSlot < slots.length &&
+      idx <= atSlot &&
       duration > 0
     )
   ) {
     throw "wrong argument";
   }
-  shift = Math.max(0, isNegative ? shift - duration : shift + duration);
-  from = idx + addSlot;
-  await client
-    .getGroupMemberProfile(
-      "C04c176c8b9b68141de3069a9d6b27411",
-      "U846856f0da9cfd54706db8cb5dabd17a"
-    )
-    .then((profile) => {
-      name = profile.displayName;
-    })
-    .catch((err) => {
-      console.log(err);
-    });
+  shift[atSlot] = isNegative ? -duration : duration;
+  updateCurrentShift();
+  const name = await getName(groupId, userId);
   const replyText = `${isNegative ? "-" : "+"}Process ${duration} นาที ${
-    shift === 0 ? "*Setzero*" : `รวม ${shift} นาที`
-  } ตั้งแต่ Slot #${from} น้างับ :P\nสั่งโดย *${name}*`;
+    currentShift === 0 ? "*Setzero*" : `รวม ${currentShift} นาที`
+  } ตั้งแต่ Slot #${atSlot} น้างับ :P\nสั่งโดย *${name}*`;
   const message = {
     type: "text",
     text: replyText,
@@ -130,7 +169,7 @@ const plusProcess = async (arg, isNegative, groupId, userId) => {
       console.log(err);
     });
   });
-  return [duration, shift, from];
+  return [duration, currentShift, atSlot];
 };
 
 module.exports = { initAnnounce, addReceiverId, removeReceiverId, plusProcess };
