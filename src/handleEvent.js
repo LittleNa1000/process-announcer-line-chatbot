@@ -1,4 +1,10 @@
-const { addReceiverId, removeReceiverId, plusProcess } = require("./announcer");
+const {
+  addReceiverId,
+  removeReceiverId,
+  plusProcess,
+  getName,
+  getVar,
+} = require("./announcer");
 const { PROCESS_FILE_NAME } = require("./constants");
 
 let client = null;
@@ -14,11 +20,11 @@ const handleEvent = async (event) => {
     event.message.text.replaceAll("!", "").trim().length > 0
   ) {
     const timeStamp = new Date(event.timestamp);
-    console.log(
-      timeStamp.toLocaleString(),
-      event.source.userId,
-      event.message.text
+    const sender = await getName(
+      event.source.type === "group" ? event.source.groupId : null,
+      event.source.userId
     );
+    console.log(timeStamp.toLocaleString(), sender, event.message.text);
     if (event.message.text.substring(1, 6) === "start") {
       const id =
         event.source.type === "group"
@@ -49,8 +55,7 @@ const handleEvent = async (event) => {
         await plusProcess(
           event.message.text.split(" "),
           op === "-" ? true : false,
-          event.source.type === "group" ? event.source.groupId : null,
-          event.source.userId
+          sender
         );
         return;
       } catch (err) {
@@ -68,6 +73,26 @@ const handleEvent = async (event) => {
         .replyMessage(event.replyToken, {
           type: "text",
           text: "📁ตอนนี้ Process เป็นไฟล์ `" + PROCESS_FILE_NAME + "` งับ",
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    } else if (event.message.text.substring(1, 6) === "debug") {
+      const [
+        intervalId,
+        receivers,
+        totalSlots,
+        idx,
+        totalShift,
+        currentTime,
+        nextSlotTime,
+      ] = getVar();
+      const replyText = `Interval: ${intervalId}\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\nCurrent Time: ${currentTime}\nNext Slot: ${nextSlotTime}`;
+      console.log(replyText);
+      return client
+        .replyMessage(event.replyToken, {
+          type: "text",
+          text: replyText,
         })
         .catch((err) => {
           console.log(err);

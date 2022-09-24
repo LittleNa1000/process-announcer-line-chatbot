@@ -8,8 +8,8 @@ const env = dotenv.config().parsed;
 const app = express();
 
 const lineConfig = {
-  channelAccessToken: env.ACCESS_TOKEN,
-  channelSecret: env.SECRET_TOKEN,
+  channelAccessToken: env.ACCESS_TOKEN_DEMO,
+  channelSecret: env.SECRET_TOKEN_DEMO,
 };
 const client = new line.Client(lineConfig);
 

@@ -18,13 +18,24 @@ let receiverId = [];
 let slots = [];
 let idx = 0;
 let shift = undefined;
-let currentShift = 0;
+let totalShift = 0;
 
 async function initAnnounce(c) {
   client = c;
   slots = await readProcess();
   shift = new Array(slots.length).fill(0);
   // console.log(slots.slice(0, 10));
+}
+function getVar() {
+  return [
+    intervalId,
+    receiverId.length,
+    slots.length,
+    idx,
+    totalShift,
+    getCurrentTime(),
+    getNextSlotTime(),
+  ];
 }
 async function getName(groupId, userId) {
   let name = "Unknown";
@@ -50,10 +61,6 @@ async function getName(groupId, userId) {
   return name;
 }
 
-function updateCurrentShift() {
-  currentShift += shift[idx];
-  currentShift = Math.max(0, currentShift);
-}
 function getCurrentTime() {
   const currentDate = new Date();
   return currentDate.getHours() * 60 + currentDate.getMinutes();
@@ -62,9 +69,7 @@ function getNextSlotTime() {
   const nextSlot = slots[idx + 1][BEGIN_TIME].split(":").map((e) =>
     Number.parseInt(e)
   );
-  return (
-    nextSlot[0] * 60 + nextSlot[1] + Math.max(0, currentShift + shift[idx + 1])
-  );
+  return nextSlot[0] * 60 + nextSlot[1] + shift[idx + 1];
 }
 const announce = async () => {
   if (idx + 1 < slots.length) {
@@ -72,13 +77,12 @@ const announce = async () => {
     const currentTime = getCurrentTime();
     if (nextSlotTime > currentTime) return;
     idx++;
-    updateCurrentShift();
     let slot = slots[idx];
-    if (BEGIN_TIME !== -1 && currentShift !== 0) {
-      slot[BEGIN_TIME] = `${slot[BEGIN_TIME]} (+${currentShift})`;
+    if (BEGIN_TIME !== -1 && shift[idx] !== 0) {
+      slot[BEGIN_TIME] = `${slot[BEGIN_TIME]} (+${shift[idx]})`;
     }
-    if (END_TIME !== -1 && currentShift !== 0) {
-      slot[END_TIME] = `${slot[END_TIME]} (+${currentShift})`;
+    if (END_TIME !== -1 && shift[idx] !== 0) {
+      slot[END_TIME] = `${slot[END_TIME]} (+${shift[idx]})`;
     }
     const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
       BEGIN_TIME !== -1 &&
@@ -105,6 +109,7 @@ const announce = async () => {
     });
   } else {
     clearInterval(intervalId);
+    intervalId = null;
   }
 };
 
@@ -116,10 +121,8 @@ const addReceiverId = (id) => {
     const currentTime = getCurrentTime();
     while (currentTime > getNextSlotTime()) {
       idx++;
-      updateCurrentShift();
       if (idx + 1 >= slots.length) {
         idx = 0;
-        currentShift = 0;
         break;
       }
     }
@@ -135,20 +138,18 @@ const removeReceiverId = (id) => {
   }
   if (receiverId.length == 0) {
     idx = 0;
-    currentShift = 0;
     clearInterval(intervalId);
+    intervalId = null;
   }
   return;
 };
 
-const plusProcess = async (arg, isNegative, groupId, userId) => {
+const plusProcess = async (arg, isNegative, sender) => {
   let [, duration, atSlot] = arg;
-  atSlot =
-    atSlot === "now"
-      ? idx
-      : atSlot === "next"
-      ? idx + 1
-      : Math.max(0, parseInt(atSlot));
+  atSlot = Math.max(
+    1,
+    atSlot === "now" ? idx : atSlot === "next" ? idx + 1 : parseInt(atSlot)
+  );
   duration = parseInt(duration);
   if (
     !(
@@ -161,12 +162,13 @@ const plusProcess = async (arg, isNegative, groupId, userId) => {
   ) {
     throw "wrong argument";
   }
-  shift[atSlot] = isNegative ? -duration : duration;
-  updateCurrentShift();
-  const name = await getName(groupId, userId);
+  for (let i = atSlot; i < slots.length; ++i) {
+    shift[i] += isNegative ? -duration : duration;
+  }
+  totalShift += isNegative ? -duration : duration;
   const replyText = `🚨${isNegative ? "-" : "+"}${duration} นาที ${
-    currentShift === 0 ? "*Setzero*" : `รวม ${currentShift} นาที`
-  } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\nสั่งโดย *${name}*`;
+    totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
+  } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\nสั่งโดย *${sender}*`;
   receiverId.forEach(async (id) => {
     await client
       .pushMessage(id, {
@@ -180,4 +182,11 @@ const plusProcess = async (arg, isNegative, groupId, userId) => {
   return;
 };
 
-module.exports = { initAnnounce, addReceiverId, removeReceiverId, plusProcess };
+module.exports = {
+  initAnnounce,
+  addReceiverId,
+  removeReceiverId,
+  plusProcess,
+  getName,
+  getVar,
+};
