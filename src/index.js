@@ -2,7 +2,7 @@ const line = require("@line/bot-sdk");
 const express = require("express");
 const dotenv = require("dotenv");
 const { handleEvent, initHandleEvent } = require("./handleEvent");
-const { initAnnounce } = require("./announce");
+const { initAnnounce } = require("./announcer");
 
 const env = dotenv.config().parsed;
 const app = express();

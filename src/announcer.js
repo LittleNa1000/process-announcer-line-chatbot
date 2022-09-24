@@ -88,19 +88,20 @@ const announce = async () => {
         : BEGIN_TIME !== -1
         ? "🔔 `" + slot[BEGIN_TIME] + "`"
         : ""
-    }\n${OWNER !== -1 ? "💬 " + slot[OWNER] : ""} ${
+    }\n${OWNER !== -1 ? "📋 " + slot[OWNER] : ""} ${
       NAME !== -1 ? '*"' + slot[NAME] + '"*' : ""
-    }\n${LEADER !== -1 ? "👑 *" + slot[LEADER] + "*" : ""}\n${
+    }\n${LEADER !== -1 ? "⚖️ *" + slot[LEADER] + "*" : ""}\n${
       LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""
     }`;
-    const message = {
-      type: "text",
-      text: text,
-    };
     receiverId.forEach(async (id) => {
-      await client.pushMessage(id, message).catch((err) => {
-        console.log(err);
-      });
+      await client
+        .pushMessage(id, {
+          type: "text",
+          text: text,
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     });
   } else {
     clearInterval(intervalId);
@@ -157,19 +158,20 @@ const plusProcess = async (arg, isNegative, groupId, userId) => {
   shift[atSlot] = isNegative ? -duration : duration;
   updateCurrentShift();
   const name = await getName(groupId, userId);
-  const replyText = `${isNegative ? "-" : "+"}Process ${duration} นาที ${
+  const replyText = `🚨${isNegative ? "-" : "+"}${duration} นาที ${
     currentShift === 0 ? "*Setzero*" : `รวม ${currentShift} นาที`
-  } ตั้งแต่ Slot #${atSlot} น้างับ :P\nสั่งโดย *${name}*`;
-  const message = {
-    type: "text",
-    text: replyText,
-  };
+  } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\nสั่งโดย *${name}*`;
   receiverId.forEach(async (id) => {
-    await client.pushMessage(id, message).catch((err) => {
-      console.log(err);
-    });
+    await client
+      .pushMessage(id, {
+        type: "text",
+        text: replyText,
+      })
+      .catch((err) => {
+        console.log(err);
+      });
   });
-  return [duration, currentShift, atSlot];
+  return;
 };
 
 module.exports = { initAnnounce, addReceiverId, removeReceiverId, plusProcess };
