@@ -84,11 +84,18 @@ const handleEvent = async (event) => {
         totalSlots,
         idx,
         totalShift,
+        nextSlotShift,
         currentTime,
         nextSlotTime,
       ] = getVar();
-      const replyText = `Interval: ${intervalId}\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\nCurrent Time: ${currentTime}\nNext Slot: ${nextSlotTime}`;
-      console.log(replyText);
+      const replyText = `Interval: ${
+        intervalId ? `Running (${intervalId})` : "Rest"
+      }\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${Math.floor(
+        currentTime / 60
+      )}:${currentTime % 60}\nNext Slot: ${Math.floor(nextSlotTime / 60)}:${
+        nextSlotTime % 60
+      }`;
+      console.log(replyText.split("\n").toString());
       return client
         .replyMessage(event.replyToken, {
           type: "text",

@@ -33,6 +33,7 @@ function getVar() {
     slots.length,
     idx,
     totalShift,
+    shift[idx + 1],
     getCurrentTime(),
     getNextSlotTime(),
   ];
@@ -79,10 +80,14 @@ const announce = async () => {
     idx++;
     let slot = slots[idx];
     if (BEGIN_TIME !== -1 && shift[idx] !== 0) {
-      slot[BEGIN_TIME] = `${slot[BEGIN_TIME]} (+${shift[idx]})`;
+      slot[BEGIN_TIME] = `${slot[BEGIN_TIME]} (${shift[idx] >= 0 ? "+" : ""}${
+        shift[idx]
+      })`;
     }
     if (END_TIME !== -1 && shift[idx] !== 0) {
-      slot[END_TIME] = `${slot[END_TIME]} (+${shift[idx]})`;
+      slot[END_TIME] = `${slot[END_TIME]} (${shift[idx] >= 0 ? "+" : ""}${
+        shift[idx]
+      })`;
     }
     const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
       BEGIN_TIME !== -1 &&
@@ -166,14 +171,14 @@ const plusProcess = async (arg, isNegative, sender) => {
     shift[i] += isNegative ? -duration : duration;
   }
   totalShift += isNegative ? -duration : duration;
-  const replyText = `🚨${isNegative ? "-" : "+"}${duration} นาที ${
+  const pushText = `🚨${isNegative ? "-" : "+"}${duration} นาที ${
     totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
   } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\nสั่งโดย *${sender}*`;
   receiverId.forEach(async (id) => {
     await client
       .pushMessage(id, {
         type: "text",
-        text: replyText,
+        text: pushText,
       })
       .catch((err) => {
         console.log(err);
