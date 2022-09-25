@@ -126,9 +126,10 @@ const addReceiverId = (id) => {
     const currentTime = getCurrentTime();
     while (currentTime > getNextSlotTime()) {
       idx++;
-      if (idx + 1 >= slots.length) {
+      if (idx >= slots.length - 1) {
         idx = 0;
-        break;
+        receiverId.splice(0, receiverId.length);
+        return null;
       }
     }
     intervalId = setInterval(announce, 2000);
@@ -149,8 +150,9 @@ const removeReceiverId = (id) => {
   return;
 };
 
-const plusProcess = async (arg, isNegative, sender) => {
+const plusProcess = async (arg, isNegative, sender, id) => {
   let [, duration, atSlot] = arg;
+  let newReceiverIdx = undefined;
   atSlot = Math.max(
     1,
     atSlot === "now" ? idx : atSlot === "next" ? idx + 1 : parseInt(atSlot)
@@ -161,16 +163,19 @@ const plusProcess = async (arg, isNegative, sender) => {
       Number.isInteger(duration) &&
       Number.isInteger(atSlot) &&
       atSlot < slots.length &&
-      idx <= atSlot &&
       duration > 0
     )
   ) {
     throw "wrong argument";
   }
+
   for (let i = atSlot; i < slots.length; ++i) {
     shift[i] += isNegative ? -duration : duration;
   }
   totalShift += isNegative ? -duration : duration;
+  if (receiverId.indexOf(id) === -1) {
+    newReceiverIdx = addReceiverId(id);
+  }
   const pushText = `🚨${isNegative ? "-" : "+"}${duration} นาที ${
     totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
   } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\nสั่งโดย *${sender}*`;
@@ -184,7 +189,7 @@ const plusProcess = async (arg, isNegative, sender) => {
         console.log(err);
       });
   });
-  return;
+  return newReceiverIdx;
 };
 
 module.exports = {

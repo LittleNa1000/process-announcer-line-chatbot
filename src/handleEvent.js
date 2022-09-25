@@ -5,7 +5,7 @@ const {
   getName,
   getVar,
 } = require("./announcer");
-const { PROCESS_FILE_NAME } = require("./constants");
+const { PROCESS_FILE_NAME, LEADER } = require("./constants");
 
 let client = null;
 
@@ -20,30 +20,29 @@ const handleEvent = async (event) => {
     event.message.text.replaceAll("!", "").trim().length > 0
   ) {
     const timeStamp = new Date(event.timestamp);
+    const id =
+      event.source.type === "group"
+        ? event.source.groupId
+        : event.source.userId;
     const sender = await getName(
       event.source.type === "group" ? event.source.groupId : null,
       event.source.userId
     );
     console.log(timeStamp.toLocaleString(), sender, event.message.text);
     if (event.message.text.substring(1, 6) === "start") {
-      const id =
-        event.source.type === "group"
-          ? event.source.groupId
-          : event.source.userId;
       const idx = addReceiverId(id);
       return client
         .replyMessage(event.replyToken, {
           type: "text",
-          text: `เริ่มประกาศตั้งแต่ Slot #${idx} น้า😉`,
+          text:
+            idx === null
+              ? `ตอนนี้เลยเวลา Slot สุดท้ายของ Process ในวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😉`
+              : `เริ่มประกาศตั้งแต่ Slot #${idx} น้า😉`,
         })
         .catch((err) => {
           console.log(err);
         });
     } else if (event.message.text.substring(1, 5) === "stop") {
-      const id =
-        event.source.type === "group"
-          ? event.source.groupId
-          : event.source.userId;
       removeReceiverId(id);
       return;
     } else if (
@@ -52,12 +51,25 @@ const handleEvent = async (event) => {
     ) {
       try {
         const op = event.message.text.substring(1, 2);
-        await plusProcess(
+        const newReceiverIdx = await plusProcess(
           event.message.text.split(" "),
           op === "-" ? true : false,
-          sender
+          sender,
+          id
         );
-        return;
+        return newReceiverIdx !== undefined
+          ? client
+              .replyMessage(event.replyToken, {
+                type: "text",
+                text:
+                  newReceiverIdx === null
+                    ? `ตอนนี้เลยเวลา Slot สุดท้ายของ Process ในวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😉`
+                    : `เริ่มประกาศตั้งแต่ Slot #${newReceiverIdx} น้า😉`,
+              })
+              .catch((err) => {
+                console.log(err);
+              })
+          : null;
       } catch (err) {
         return client
           .replyMessage(event.replyToken, {
