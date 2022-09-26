@@ -67,13 +67,16 @@ function getCurrentTime() {
   return currentDate.getHours() * 60 + currentDate.getMinutes();
 }
 function getNextSlotTime() {
+  if (idx >= slots.length - 1) {
+    return 99 * 60 + 59;
+  }
   const nextSlot = slots[idx + 1][BEGIN_TIME].split(":").map((e) =>
     Number.parseInt(e)
   );
   return nextSlot[0] * 60 + nextSlot[1] + shift[idx + 1];
 }
 const announce = async () => {
-  if (idx + 1 < slots.length) {
+  if (idx < slots.length - 1) {
     const nextSlotTime = getNextSlotTime();
     const currentTime = getCurrentTime();
     if (nextSlotTime > currentTime) return;

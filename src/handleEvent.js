@@ -1,3 +1,4 @@
+const axios = require("axios");
 const {
   addReceiverId,
   removeReceiverId,
@@ -5,9 +6,14 @@ const {
   getName,
   getVar,
 } = require("./announcer");
-const { PROCESS_FILE_NAME, LEADER } = require("./constants");
+const { PROCESS_FILE_NAME } = require("./constants");
+const dotenv = require("dotenv");
 
 let client = null;
+const env = dotenv.config().parsed;
+const config = {
+  headers: { Authorization: `Bearer ${env.ACCESS_TOKEN_DEMO}` },
+};
 
 function initHandleEvent(c) {
   client = c;
@@ -108,6 +114,26 @@ const handleEvent = async (event) => {
         nextSlotTime % 60
       }`;
       console.log(replyText.split("\n").toString());
+      return client
+        .replyMessage(event.replyToken, {
+          type: "text",
+          text: replyText,
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    } else if (event.message.text.substring(1, 6) === "quota") {
+      const usage = await axios
+        .get("https://api.line.me/v2/bot/message/quota/consumption", config)
+        .catch();
+      const quota = await axios
+        .get("https://api.line.me/v2/bot/message/quota/", config)
+        .catch();
+      const replyText = `Usage: ${
+        usage.status === 200 ? usage.data.totalUsage : null
+      }/${quota.status === 200 ? quota.data.value : null}\nType: ${
+        quota.status === 200 ? quota.data.type : null
+      }`;
       return client
         .replyMessage(event.replyToken, {
           type: "text",
