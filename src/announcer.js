@@ -33,7 +33,7 @@ function getVar() {
     slots.length,
     idx,
     totalShift,
-    shift[idx + 1],
+    idx >= slots.length - 1 ? shift[idx + 1] : null,
     getCurrentTime(),
     getNextSlotTime(),
   ];
