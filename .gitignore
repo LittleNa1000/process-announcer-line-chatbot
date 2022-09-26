@@ -105,4 +105,4 @@ dist
 
 ngrok.exe
 .vscode
-resources/
+process-files
