@@ -18,9 +18,19 @@ const config = {
 function initHandleEvent(c) {
   client = c;
 }
-
+async function replyText(replyToken, text) {
+  await client
+    .replyMessage(replyToken, {
+      type: "text",
+      text: text,
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+}
 const handleEvent = async (event) => {
   if (
+    event.type == "message" &&
     event.message.type === "text" &&
     event.message.text.charAt(0) === "!" &&
     event.message.text.replaceAll("!", "").trim().length > 0
@@ -37,20 +47,14 @@ const handleEvent = async (event) => {
     console.log(timeStamp.toLocaleString(), sender, event.message.text);
     if (event.message.text.substring(1, 6) === "start") {
       const idx = addReceiverId(id);
-      return client
-        .replyMessage(event.replyToken, {
-          type: "text",
-          text:
-            idx === null
-              ? `ตอนนี้เลยเวลา Slot สุดท้ายของ Process ในวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😉`
-              : `เริ่มประกาศตั้งแต่ Slot #${idx} น้า😉`,
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+      await replyText(
+        event.replyToken,
+        idx === null
+          ? `ตอนนี้เลยเวลา Slot สุดท้ายของ Process ในวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😉`
+          : `เริ่มประกาศตั้งแต่ Slot #${idx} น้า😉`
+      );
     } else if (event.message.text.substring(1, 5) === "stop") {
       removeReceiverId(id);
-      return;
     } else if (
       event.message.text.substring(1, 2) === "+" ||
       event.message.text.substring(1, 2) === "-"
@@ -63,38 +67,25 @@ const handleEvent = async (event) => {
           sender,
           id
         );
-        return newReceiverIdx !== undefined
-          ? client
-              .replyMessage(event.replyToken, {
-                type: "text",
-                text:
-                  newReceiverIdx === null
-                    ? `ตอนนี้เลยเวลา Slot สุดท้ายของ Process ในวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😉`
-                    : `เริ่มประกาศตั้งแต่ Slot #${newReceiverIdx} น้า😉`,
-              })
-              .catch((err) => {
-                console.log(err);
-              })
-          : null;
+        if (newReceiverIdx !== undefined) {
+          await replyText(
+            event.replyToken,
+            newReceiverIdx === null
+              ? `ตอนนี้เลยเวลา Slot สุดท้ายของ Process ในวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😉`
+              : `เริ่มประกาศตั้งแต่ Slot #${newReceiverIdx} น้า😉`
+          );
+        }
       } catch (err) {
-        return client
-          .replyMessage(event.replyToken, {
-            type: "text",
-            text: "ใส่คำสั่งบวกโปรเซสผิดงับ❌\nต้องแบบนี้น้า✔️ ```!+ (นาที) (Slot) หรือ !- (นาที) (Slot)```",
-          })
-          .catch((err) => {
-            console.log(err);
-          });
+        await replyText(
+          event.replyToken,
+          "ใส่คำสั่งบวกโปรเซสผิดงับ❌\nต้องแบบนี้น้า✔️ ```!+ (นาที) (Slot) หรือ !- (นาที) (Slot)```"
+        );
       }
     } else if (event.message.text.substring(1, 9) === "filename") {
-      return client
-        .replyMessage(event.replyToken, {
-          type: "text",
-          text: "📁ตอนนี้ Process เป็นไฟล์ `" + PROCESS_FILE_NAME + "` งับ",
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+      await replyText(
+        event.replyToken,
+        "📁ตอนนี้ Process เป็นไฟล์ `" + PROCESS_FILE_NAME + "` งับ"
+      );
     } else if (event.message.text.substring(1, 6) === "debug") {
       const [
         intervalId,
@@ -106,7 +97,7 @@ const handleEvent = async (event) => {
         currentTime,
         nextSlotTime,
       ] = getVar();
-      const replyText = `Interval: ${
+      const text = `Interval: ${
         intervalId ? `Running (${intervalId})` : "Rest"
       }\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${Math.floor(
         currentTime / 60
@@ -114,14 +105,7 @@ const handleEvent = async (event) => {
         nextSlotTime % 60
       }`;
       console.log(replyText.split("\n").toString());
-      return client
-        .replyMessage(event.replyToken, {
-          type: "text",
-          text: replyText,
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+      await replyText(event.replyToken, text);
     } else if (event.message.text.substring(1, 6) === "quota") {
       const usage = await axios
         .get("https://api.line.me/v2/bot/message/quota/consumption", config)
@@ -129,24 +113,14 @@ const handleEvent = async (event) => {
       const quota = await axios
         .get("https://api.line.me/v2/bot/message/quota/", config)
         .catch();
-      const replyText = `Usage: ${
+      const text = `Usage: ${
         usage.status === 200 ? usage.data.totalUsage : null
       }/${quota.status === 200 ? quota.data.value : null}\nType: ${
         quota.status === 200 ? quota.data.type : null
       }`;
-      return client
-        .replyMessage(event.replyToken, {
-          type: "text",
-          text: replyText,
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+      await replyText(event.replyToken, text);
     } else {
-      return client.replyMessage(event.replyToken, {
-        type: "text",
-        text: "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢",
-      });
+      await replyText(event.replyToken, "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢");
     }
   }
   return;

@@ -1,8 +1,8 @@
 const line = require("@line/bot-sdk");
 const express = require("express");
 const dotenv = require("dotenv");
-const { handleEvent, initHandleEvent } = require("./handleEvent");
-const { initAnnounce } = require("./announcer");
+const { handleEvent, initHandleEvent } = require("./src/handleEvent");
+const { initAnnouncer } = require("./src/announcer");
 
 const env = dotenv.config().parsed;
 const app = express();
@@ -27,6 +27,6 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
 
 app.listen(env.PORT, async () => {
   initHandleEvent(client);
-  await initAnnounce(client);
+  await initAnnouncer(client);
   console.log(`on port ${env.PORT}`);
 });

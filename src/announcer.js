@@ -20,7 +20,7 @@ let idx = 0;
 let shift = undefined;
 let totalShift = 0;
 
-async function initAnnounce(c) {
+async function initAnnouncer(c) {
   client = c;
   slots = await readProcess();
   shift = new Array(slots.length).fill(0);
@@ -60,6 +60,16 @@ async function getName(groupId, userId) {
       });
   }
   return name;
+}
+async function pushText(id, text) {
+  await client
+    .pushMessage(id, {
+      type: "text",
+      text: text,
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 }
 
 function getCurrentTime() {
@@ -106,14 +116,7 @@ const announce = async () => {
       LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""
     }`;
     receiverId.forEach(async (id) => {
-      await client
-        .pushMessage(id, {
-          type: "text",
-          text: text,
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+      await pushText(id, text);
     });
   } else {
     clearInterval(intervalId);
@@ -179,24 +182,17 @@ const plusProcess = async (arg, isNegative, sender, id) => {
   if (receiverId.indexOf(id) === -1) {
     newReceiverIdx = addReceiverId(id);
   }
-  const pushText = `🚨${isNegative ? "-" : "+"}${duration} นาที ${
+  const text = `🚨${isNegative ? "-" : "+"}${duration} นาที ${
     totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
   } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\nสั่งโดย *${sender}*`;
   receiverId.forEach(async (id) => {
-    await client
-      .pushMessage(id, {
-        type: "text",
-        text: pushText,
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    await pushText(id, text);
   });
   return newReceiverIdx;
 };
 
 module.exports = {
-  initAnnounce,
+  initAnnouncer,
   addReceiverId,
   removeReceiverId,
   plusProcess,
