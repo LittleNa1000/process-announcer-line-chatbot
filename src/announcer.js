@@ -1,4 +1,4 @@
-const { readProcess } = require("./readcsv");
+const { readProcess } = require("./utils/readcsv");
 const {
   NUM,
   BEGIN_TIME,
@@ -11,8 +11,7 @@ const {
   MEMBER,
   DETAILS,
 } = require("./constants");
-
-let client = null;
+const { pushText } = require("./client");
 let intervalId = null;
 let receiverId = [];
 let slots = [];
@@ -20,11 +19,28 @@ let idx = 0;
 let shift = undefined;
 let totalShift = 0;
 
-async function initAnnouncer(c) {
-  client = c;
+async function initAnnouncer() {
   slots = await readProcess();
   shift = new Array(slots.length).fill(0);
-  // console.log(slots.slice(0, 10));
+  if (intervalId !== null) {
+    clearInterval(intervalId);
+  }
+  const currentTime = getCurrentTime();
+  let minIdx = 0;
+  let minTime = 99 * 60 + 59;
+  let nextSlotTime = 0;
+  while (idx < slots.length - 1) {
+    nextSlotTime = getNextSlotTime();
+    if (currentTime < nextSlotTime) {
+      if (nextSlotTime < minTime) {
+        minTime = nextSlotTime;
+        minIdx = idx;
+      }
+    }
+    idx++;
+  }
+  idx = minIdx;
+  intervalId = setInterval(announce, 2000);
 }
 function getVar() {
   return [
@@ -33,43 +49,10 @@ function getVar() {
     slots.length,
     idx,
     totalShift,
-    idx >= slots.length - 1 ? shift[idx + 1] : null,
+    idx < slots.length - 1 ? shift[idx + 1] : null,
     getCurrentTime(),
     getNextSlotTime(),
   ];
-}
-async function getName(groupId, userId) {
-  let name = "Unknown";
-  if (groupId !== null) {
-    await client
-      .getGroupMemberProfile(groupId, userId)
-      .then((profile) => {
-        name = profile.displayName;
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  } else {
-    await client
-      .getProfile(userId)
-      .then((profile) => {
-        name = profile.displayName;
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }
-  return name;
-}
-async function pushText(id, text) {
-  await client
-    .pushMessage(id, {
-      type: "text",
-      text: text,
-    })
-    .catch((err) => {
-      console.log(err);
-    });
 }
 
 function getCurrentTime() {
@@ -83,13 +66,13 @@ function getNextSlotTime() {
   const nextSlot = slots[idx + 1][BEGIN_TIME].split(":").map((e) =>
     Number.parseInt(e)
   );
-  return nextSlot[0] * 60 + nextSlot[1] + shift[idx + 1];
+  return (nextSlot[0] * 60 + nextSlot[1] + shift[idx + 1]) % (24 * 60);
 }
 const announce = async () => {
   if (idx < slots.length - 1) {
     const nextSlotTime = getNextSlotTime();
     const currentTime = getCurrentTime();
-    if (nextSlotTime > currentTime) return;
+    if (nextSlotTime !== currentTime) return;
     idx++;
     let slot = slots[idx];
     if (BEGIN_TIME !== -1 && shift[idx] !== 0) {
@@ -119,26 +102,13 @@ const announce = async () => {
       await pushText(id, text);
     });
   } else {
-    clearInterval(intervalId);
-    intervalId = null;
+    idx = 0;
   }
 };
 
 const addReceiverId = (id) => {
   if (receiverId.indexOf(id) === -1) {
     receiverId.push(id);
-  }
-  if (receiverId.length == 1) {
-    const currentTime = getCurrentTime();
-    while (currentTime > getNextSlotTime()) {
-      idx++;
-      if (idx >= slots.length - 1) {
-        idx = 0;
-        receiverId.splice(0, receiverId.length);
-        return null;
-      }
-    }
-    intervalId = setInterval(announce, 2000);
   }
   return idx + 1;
 };
@@ -147,11 +117,6 @@ const removeReceiverId = (id) => {
   const i = receiverId.indexOf(id);
   if (i !== -1) {
     receiverId.splice(i, 1);
-  }
-  if (receiverId.length == 0) {
-    idx = 0;
-    clearInterval(intervalId);
-    intervalId = null;
   }
   return;
 };
@@ -163,26 +128,26 @@ const plusProcess = async (arg, isNegative, sender, id) => {
     1,
     atSlot === "now" ? idx : atSlot === "next" ? idx + 1 : parseInt(atSlot)
   );
-  duration = parseInt(duration);
+  duration = isNegative ? parseInt(-duration) : parseInt(duration);
   if (
     !(
       Number.isInteger(duration) &&
       Number.isInteger(atSlot) &&
       atSlot < slots.length &&
-      duration > 0
+      duration !== 0
     )
   ) {
     throw "wrong argument";
   }
 
   for (let i = atSlot; i < slots.length; ++i) {
-    shift[i] += isNegative ? -duration : duration;
+    shift[i] += duration;
   }
-  totalShift += isNegative ? -duration : duration;
+  totalShift += duration;
   if (receiverId.indexOf(id) === -1) {
     newReceiverIdx = addReceiverId(id);
   }
-  const text = `🚨${isNegative ? "-" : "+"}${duration} นาที ${
+  const text = `🚨${duration < 0 ? "" : "+"}${duration} นาที ${
     totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
   } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\nสั่งโดย *${sender}*`;
   receiverId.forEach(async (id) => {
@@ -196,6 +161,5 @@ module.exports = {
   addReceiverId,
   removeReceiverId,
   plusProcess,
-  getName,
   getVar,
 };

@@ -3,31 +3,17 @@ const {
   addReceiverId,
   removeReceiverId,
   plusProcess,
-  getName,
   getVar,
 } = require("./announcer");
 const { PROCESS_FILE_NAME } = require("./constants");
 const dotenv = require("dotenv");
-
-let client = null;
+const { replyText, getName } = require("./client");
 const env = dotenv.config().parsed;
 const config = {
   headers: { Authorization: `Bearer ${env.ACCESS_TOKEN_DEMO}` },
 };
 
-function initHandleEvent(c) {
-  client = c;
-}
-async function replyText(replyToken, text) {
-  await client
-    .replyMessage(replyToken, {
-      type: "text",
-      text: text,
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-}
+function initHandleEvent() {}
 const handleEvent = async (event) => {
   if (
     event.type == "message" &&
@@ -104,7 +90,7 @@ const handleEvent = async (event) => {
       )}:${currentTime % 60}\nNext Slot: ${Math.floor(nextSlotTime / 60)}:${
         nextSlotTime % 60
       }`;
-      console.log(replyText.split("\n").toString());
+      console.log(text.split("\n").toString());
       await replyText(event.replyToken, text);
     } else if (event.message.text.substring(1, 6) === "quota") {
       const usage = await axios

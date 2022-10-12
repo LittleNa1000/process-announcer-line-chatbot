@@ -3,6 +3,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const { handleEvent, initHandleEvent } = require("./src/handleEvent");
 const { initAnnouncer } = require("./src/announcer");
+const { initClient } = require("./src/client");
 
 const env = dotenv.config().parsed;
 const app = express();
@@ -26,7 +27,8 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
 });
 
 app.listen(env.PORT, async () => {
-  initHandleEvent(client);
-  await initAnnouncer(client);
+  initClient(client);
+  initHandleEvent();
+  await initAnnouncer();
   console.log(`on port ${env.PORT}`);
 });
