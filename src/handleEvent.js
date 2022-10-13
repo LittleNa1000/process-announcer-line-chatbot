@@ -32,33 +32,39 @@ const handleEvent = async (event) => {
     );
     console.log(timeStamp.toLocaleString(), sender, event.message.text);
     if (event.message.text.substring(1, 6) === "start") {
-      const idx = addReceiverId(id);
+      const result = addReceiverId(id);
+      if (result !== null) {
+        await replyText(
+          event.replyToken,
+          result === -1
+            ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
+            : `เริ่มประกาศตั้งแต่ Slot #${result[0]} ตอน ${result[1]} น้า😉`
+        );
+      }
+    } else if (event.message.text.substring(1, 5) === "stop") {
+      const success = removeReceiverId(id);
       await replyText(
         event.replyToken,
-        idx === null
-          ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
-          : `เริ่มประกาศตั้งแต่ Slot #${idx[0]} ตอน ${idx[1]} น้า😉`
+        success ? "บ๊ายบาย ไว้เจอกันอีกน้า👋" : "เรียก👉 !start ก่อนนะงับ"
       );
-    } else if (event.message.text.substring(1, 5) === "stop") {
-      removeReceiverId(id);
     } else if (
       event.message.text.substring(1, 2) === "+" ||
       event.message.text.substring(1, 2) === "-"
     ) {
       try {
         const op = event.message.text.substring(1, 2);
-        const newReceiverIdx = await plusProcess(
+        const result = await plusProcess(
           event.message.text.split(" "),
           op === "-" ? true : false,
           sender,
           id
         );
-        if (newReceiverIdx !== undefined) {
+        if (result !== null) {
           await replyText(
             event.replyToken,
-            newReceiverIdx === null
+            result === -1
               ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
-              : `เริ่มประกาศตั้งแต่ Slot #${newReceiverIdx[0]} ตอน ${newReceiverIdx[1]} น้า😉`
+              : `เริ่มประกาศตั้งแต่ Slot #${result[0]} ตอน ${result[1]} น้า😉`
           );
         }
       } catch (err) {

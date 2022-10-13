@@ -27,8 +27,8 @@ async function pushText(id, bundle) {
       text: bundle,
     });
   }
-  // console.log(id, messages);
-  // return;
+  console.log(id, messages);
+  return;
   await client.pushMessage(id, messages).catch((err) => {
     console.log(err);
   });

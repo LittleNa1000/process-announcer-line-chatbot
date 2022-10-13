@@ -12,8 +12,8 @@ const {
   DETAILS,
 } = require("./constants");
 const { pushText } = require("./client");
+const { readJSON, writeJSON } = require("./utils/readwritejson");
 let intervalId = null;
-let receiverId = [];
 let slots = [];
 let bundle = [];
 let idx = 0;
@@ -48,7 +48,7 @@ function resetIdx() {
 function getVar() {
   return [
     intervalId,
-    receiverId.length,
+    readJSON().receivers.length,
     slots.length - 1,
     idx,
     totalShift,
@@ -88,7 +88,7 @@ const announce = async () => {
       idx++;
       nextSlotTime = getNextSlotTime();
       currentTime = getCurrentTime();
-      let slot = slots[idx];
+      let slot = [...slots[idx]];
       if (BEGIN_TIME !== -1 && shift[idx] !== 0) {
         slot[BEGIN_TIME] += ` (${shift[idx] >= 0 ? "+" : ""}${shift[idx]})`;
       }
@@ -129,8 +129,9 @@ const announce = async () => {
       bundle.push(text);
     }
     if (bundle.length > 0) {
-      receiverId.forEach(async (id) => {
-        await pushText(id, bundle);
+      const { receivers } = readJSON();
+      receivers.forEach(async (e) => {
+        await pushText(e.id, bundle);
         // copy bundle แล้ว ตัด ฝ่ายที่ไม่สนใจออก
       });
     }
@@ -145,14 +146,19 @@ const announce = async () => {
 
 const addReceiverId = (id) => {
   const currentTime = getCurrentTime();
-  if (receiverId.indexOf(id) === -1) {
-    receiverId.push(id);
+  const { receivers } = readJSON();
+  const i = receivers.map((e) => e.id).indexOf(id);
+  if (i === -1) {
+    receivers.push({ id: id, preferences: [] });
+    writeJSON(receivers);
+  } else {
+    return null;
   }
   if (
     idx >= slots.length - 1 ||
     (idx === 0 && getNextSlotTime(slots.length - 2) < currentTime)
   ) {
-    return null;
+    return -1;
   }
   return [
     idx + 1,
@@ -165,16 +171,18 @@ const addReceiverId = (id) => {
 };
 
 const removeReceiverId = (id) => {
-  const i = receiverId.indexOf(id);
+  const { receivers } = readJSON();
+  const i = receivers.map((e) => e.id).indexOf(id);
   if (i !== -1) {
-    receiverId.splice(i, 1);
+    receivers.splice(i, 1);
+    writeJSON(receivers);
+    return true;
   }
-  return;
+  return false;
 };
 
 const plusProcess = async (arg, isNegative, sender, id) => {
   let [, duration, atSlot] = arg;
-  let newReceiverIdx = undefined;
   atSlot = Math.max(
     1,
     atSlot === "now" ? idx : atSlot === "next" ? idx + 1 : parseInt(atSlot)
@@ -195,9 +203,7 @@ const plusProcess = async (arg, isNegative, sender, id) => {
     shift[i] += duration;
   }
   totalShift += duration;
-  if (receiverId.indexOf(id) === -1) {
-    newReceiverIdx = addReceiverId(id);
-  }
+  const result = addReceiverId(id);
   const text = `🚨${duration < 0 ? "" : "+"}${duration} นาที ${
     totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
   } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\n⌛Slot #${atSlot} ${
@@ -209,11 +215,12 @@ const plusProcess = async (arg, isNegative, sender, id) => {
       ? `(${shift[atSlot] >= 0 ? "+" : ""}${shift[atSlot]})`
       : ""
   }\nสั่งโดย ${sender}`;
-  receiverId.forEach(async (id) => {
-    await pushText(id, text);
+  const { receivers } = readJSON();
+  receivers.forEach(async (e) => {
+    await pushText(e.id, text);
   });
   setTimeout(announce, 0.5 * 1000);
-  return newReceiverIdx;
+  return result;
 };
 
 module.exports = {
