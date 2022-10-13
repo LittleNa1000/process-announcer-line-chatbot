@@ -36,8 +36,8 @@ const handleEvent = async (event) => {
       await replyText(
         event.replyToken,
         idx === null
-          ? `ตอนนี้เลยเวลา Slot สุดท้ายของ Process ในวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😉`
-          : `เริ่มประกาศตั้งแต่ Slot #${idx[0]} เริ่ม ${idx[1]} น้า😉`
+          ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
+          : `เริ่มประกาศตั้งแต่ Slot #${idx[0]} ตอน ${idx[1]} น้า😉`
       );
     } else if (event.message.text.substring(1, 5) === "stop") {
       removeReceiverId(id);
@@ -57,8 +57,8 @@ const handleEvent = async (event) => {
           await replyText(
             event.replyToken,
             newReceiverIdx === null
-              ? `ตอนนี้เลยเวลา Slot สุดท้ายของ Process ในวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😉`
-              : `เริ่มประกาศตั้งแต่ Slot #${newReceiverIdx[0]} เริ่ม ${newReceiverIdx[1]} น้า😉`
+              ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
+              : `เริ่มประกาศตั้งแต่ Slot #${newReceiverIdx[0]} ตอน ${newReceiverIdx[1]} น้า😉`
           );
         }
       } catch (err) {
@@ -83,13 +83,17 @@ const handleEvent = async (event) => {
         currentTime,
         nextSlotTime,
       ] = getVar();
+      const nextSlotDate = new Date(0);
+      nextSlotDate.setMinutes(nextSlotTime);
+      const currentDate = new Date(0);
+      currentDate.setMinutes(currentTime);
       const text = `Interval: ${
         intervalId ? `Running (${intervalId})` : "Rest"
-      }\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${Math.floor(
-        currentTime / 60
-      )}:${currentTime % 60}\nNext Slot: ${Math.floor(nextSlotTime / 60)}:${
-        nextSlotTime % 60
-      }`;
+      }\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${currentDate
+        .toISOString()
+        .substring(11, 16)}\nNext Slot: ${nextSlotDate
+        .toISOString()
+        .substring(11, 16)}`;
       console.log(text.split("\n").toString());
       await replyText(event.replyToken, text);
     } else if (event.message.text.substring(1, 6) === "quota") {

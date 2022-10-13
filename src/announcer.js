@@ -15,6 +15,7 @@ const { pushText } = require("./client");
 let intervalId = null;
 let receiverId = [];
 let slots = [];
+let bundle = [];
 let idx = 0;
 let shift = undefined;
 let totalShift = 0;
@@ -26,23 +27,21 @@ async function initAnnouncer() {
     clearInterval(intervalId);
   }
   resetIdx();
-  intervalId = setInterval(announce, 2000);
+  intervalId = setInterval(announce, 5 * 1000);
 }
 function resetIdx() {
   const currentTime = getCurrentTime();
+  let nextSlotTime = 0;
   let minIdx = 0;
   let minTime = 99 * 60 + 59;
-  let nextSlotTime = 0;
-  idx = 0;
-  while (idx < slots.length - 1) {
-    nextSlotTime = getNextSlotTime();
+  for (let i = 0; i < slots.length - 1; ++i) {
+    nextSlotTime = getNextSlotTime(i);
     if (currentTime < nextSlotTime) {
       if (nextSlotTime < minTime) {
         minTime = nextSlotTime;
-        minIdx = idx;
+        minIdx = i;
       }
     }
-    idx++;
   }
   idx = minIdx;
 }
@@ -50,10 +49,10 @@ function getVar() {
   return [
     intervalId,
     receiverId.length,
-    slots.length,
+    slots.length - 1,
     idx,
     totalShift,
-    idx < slots.length - 1 ? shift[idx + 1] : null,
+    idx < slots.length - 1 ? shift[idx + 1] : "N/A",
     getCurrentTime(),
     getNextSlotTime(),
   ];
@@ -65,7 +64,7 @@ function getCurrentTime() {
 }
 function getNextSlotTime(index = idx) {
   if (index >= slots.length - 1) {
-    return 99 * 60 + 59;
+    return (23 + 24) * 60 + 59;
   }
   const nextSlot = slots[index + 1][BEGIN_TIME].split(":").map((e) =>
     Number.parseInt(e)
@@ -74,48 +73,71 @@ function getNextSlotTime(index = idx) {
 }
 const announce = async () => {
   if (idx < slots.length - 1) {
-    const nextSlotTime = getNextSlotTime();
-    const currentTime = getCurrentTime();
-    if (
-      nextSlotTime > currentTime ||
-      (idx == 0 && nextSlotTime !== currentTime)
-    )
-      return;
-    idx++;
-    let slot = slots[idx];
-    if (BEGIN_TIME !== -1 && shift[idx] !== 0) {
-      slot[BEGIN_TIME] += ` (${shift[idx] >= 0 ? "+" : ""}${shift[idx]})`;
+    let nextSlotTime = getNextSlotTime();
+    let currentTime = getCurrentTime();
+    while (
+      !(
+        nextSlotTime > currentTime ||
+        (idx == 0 && nextSlotTime !== currentTime)
+      )
+    ) {
+      if (bundle.length >= 5) {
+        setTimeout(announce, 0.5 * 1000);
+        break;
+      }
+      idx++;
+      nextSlotTime = getNextSlotTime();
+      currentTime = getCurrentTime();
+      let slot = slots[idx];
+      if (BEGIN_TIME !== -1 && shift[idx] !== 0) {
+        slot[BEGIN_TIME] += ` (${shift[idx] >= 0 ? "+" : ""}${shift[idx]})`;
+      }
+      if (END_TIME !== -1 && shift[idx] !== 0) {
+        slot[END_TIME] += ` (${shift[idx] >= 0 ? "+" : ""}${shift[idx]})`;
+      }
+      slot[LOCATION] = slot[LOCATION].split("\n");
+      slot[LOCATION] = `${slot[LOCATION][0]}${
+        slot[LOCATION].length > 1
+          ? " และอื่น ๆ อีก " + (slot[LOCATION].length - 1) + " ที่"
+          : ""
+      }`;
+      slot[MEMBER] = slot[MEMBER].split("\n");
+      slot[MEMBER] = `${slot[MEMBER][0]}${
+        slot[MEMBER].length > 1
+          ? " กับคนอื่น ๆ อีก " + (slot[MEMBER].length - 1) + " คน"
+          : ""
+      }`;
+      slot[DETAILS] = slot[DETAILS].split("\n");
+      slot[DETAILS] = `${slot[DETAILS][0]}${
+        slot[DETAILS].length > 1 ? "..." : ""
+      }`;
+      const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
+        BEGIN_TIME !== -1 &&
+        END_TIME !== -1 &&
+        slot[BEGIN_TIME] !== slot[END_TIME]
+          ? "⏱️ `" + slot[BEGIN_TIME] + " - " + slot[END_TIME] + "`"
+          : BEGIN_TIME !== -1
+          ? "🔔 `" + slot[BEGIN_TIME] + "`"
+          : ""
+      }\n${OWNER !== -1 ? "📋 " + slot[OWNER] : ""} ${
+        NAME !== -1 ? '"' + slot[NAME] + '"' : ""
+      }\n${LEADER !== -1 ? "⚖️ " + slot[LEADER] : ""}\n${
+        LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""
+      }\n${MEMBER !== -1 ? "🏃 " + slot[MEMBER] : ""}\n${
+        DETAILS !== -1 ? "📃 " + slot[DETAILS] : ""
+      }`;
+      bundle.push(text);
     }
-    if (END_TIME !== -1 && shift[idx] !== 0) {
-      slot[END_TIME] += ` (${shift[idx] >= 0 ? "+" : ""}${shift[idx]})`;
+    if (bundle.length > 0) {
+      receiverId.forEach(async (id) => {
+        await pushText(id, bundle);
+        // copy bundle แล้ว ตัด ฝ่ายที่ไม่สนใจออก
+      });
     }
-    slot[LOCATION] = slot[LOCATION].split("\n");
-    slot[MEMBER] = slot[MEMBER].split("\n");
-    slot[DETAILS] = slot[DETAILS].split("\n");
-    const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
-      BEGIN_TIME !== -1 &&
-      END_TIME !== -1 &&
-      slot[BEGIN_TIME] !== slot[END_TIME]
-        ? "⏱️ `" + slot[BEGIN_TIME] + " - " + slot[END_TIME] + "`"
-        : BEGIN_TIME !== -1
-        ? "🔔 `" + slot[BEGIN_TIME] + "`"
-        : ""
-    }\n${OWNER !== -1 ? "📋 " + slot[OWNER] : ""} ${
-      NAME !== -1 ? '"' + slot[NAME] + '"' : ""
-    }\n${LEADER !== -1 ? "⚖️ " + slot[LEADER] : ""}\n${
-      LOCATION !== -1
-        ? "📌 " +
-          slot[LOCATION][0] +
-          " และอีก " +
-          (slot[LOCATION].length - 1) +
-          " ที่"
-        : ""
-    }\n${MEMBER !== -1 ? "👪 " + slot[MEMBER][0] : ""}\n${
-      DETAILS !== -1 ? "📃 " + slot[DETAILS][0] : ""
-    }`;
-    receiverId.forEach(async (id) => {
-      await pushText(id, text);
-    });
+    bundle = [];
+    if (idx >= slots.length - 1) {
+      resetIdx();
+    }
   } else {
     resetIdx();
   }
@@ -127,15 +149,14 @@ const addReceiverId = (id) => {
     receiverId.push(id);
   }
   if (
-    idx === 0 &&
-    (getNextSlotTime(slots.length - 2) < currentTime ||
-      currentTime + 90 < getNextSlotTime())
+    idx >= slots.length - 1 ||
+    (idx === 0 && getNextSlotTime(slots.length - 2) < currentTime)
   ) {
     return null;
   }
   return [
     idx + 1,
-    `${slots[idx + 1][BEGIN_TIME]} ${
+    `${slots[idx + 1][BEGIN_TIME]}${
       shift[idx + 1] !== 0
         ? `(${shift[idx + 1] >= 0 ? "+" : ""}${shift[idx + 1]})`
         : ""
@@ -179,16 +200,19 @@ const plusProcess = async (arg, isNegative, sender, id) => {
   }
   const text = `🚨${duration < 0 ? "" : "+"}${duration} นาที ${
     totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
-  } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\n⌛Slot #${atSlot} เริ่ม ${
-    slots[idx + 1][BEGIN_TIME]
+  } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\n⌛Slot #${atSlot} ${
+    atSlot === idx
+      ? `จบ ${slots[atSlot][END_TIME]}`
+      : `เริ่ม ${slots[atSlot][BEGIN_TIME]} `
   } ${
-    shift[idx + 1] !== 0
-      ? `(${shift[idx + 1] >= 0 ? "+" : ""}${shift[idx + 1]})`
+    shift[atSlot] !== 0
+      ? `(${shift[atSlot] >= 0 ? "+" : ""}${shift[atSlot]})`
       : ""
   }\nสั่งโดย ${sender}`;
   receiverId.forEach(async (id) => {
     await pushText(id, text);
   });
+  setTimeout(announce, 0.5 * 1000);
   return newReceiverIdx;
 };
 

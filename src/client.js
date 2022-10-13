@@ -12,15 +12,26 @@ async function replyText(replyToken, text) {
       console.log(err);
     });
 }
-async function pushText(id, text) {
-  await client
-    .pushMessage(id, {
-      type: "text",
-      text: text,
-    })
-    .catch((err) => {
-      console.log(err);
+async function pushText(id, bundle) {
+  let messages = [];
+  if (Array.isArray(bundle)) {
+    bundle.forEach((element) => {
+      messages.push({
+        type: "text",
+        text: element,
+      });
     });
+  } else {
+    messages.push({
+      type: "text",
+      text: bundle,
+    });
+  }
+  // console.log(id, messages);
+  // return;
+  await client.pushMessage(id, messages).catch((err) => {
+    console.log(err);
+  });
 }
 async function getName(groupId, userId) {
   let name = "Unknown";
