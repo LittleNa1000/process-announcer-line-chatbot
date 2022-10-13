@@ -1,3 +1,9 @@
+const axios = require("axios");
+const dotenv = require("dotenv");
+const env = dotenv.config().parsed;
+const config = {
+  headers: { Authorization: `Bearer ${env.ACCESS_TOKEN_DEMO}` },
+};
 let client = null;
 function initClient(c) {
   client = c;
@@ -27,19 +33,19 @@ async function pushText(id, bundle) {
       text: bundle,
     });
   }
-  console.log(id, messages);
-  return;
+  // console.log(id, messages);
+  // return;
   await client.pushMessage(id, messages).catch((err) => {
     console.log(err);
   });
 }
-async function getName(groupId, userId) {
-  let name = "Unknown";
+async function getSender(groupId, userId) {
+  let sender = "Unknown";
   if (groupId !== null) {
     await client
       .getGroupMemberProfile(groupId, userId)
       .then((profile) => {
-        name = profile.displayName;
+        sender = profile.displayName;
       })
       .catch((err) => {
         console.log(err);
@@ -48,12 +54,33 @@ async function getName(groupId, userId) {
     await client
       .getProfile(userId)
       .then((profile) => {
-        name = profile.displayName;
+        sender = profile.displayName;
       })
       .catch((err) => {
         console.log(err);
       });
   }
+  return sender;
+}
+async function getName(id) {
+  let name = "Unknown";
+  if (id[0] === "U") {
+    await client
+      .getProfile(id)
+      .then((profile) => {
+        name = profile.displayName;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  } else if (id[0] === "C") {
+    await axios
+      .get(`https://api.line.me/v2/bot/group/${id}/summary`, config)
+      .then((summary) => {
+        name = summary.data.groupName;
+      })
+      .catch();
+  }
   return name;
 }
-module.exports = { initClient, replyText, pushText, getName };
+module.exports = { initClient, replyText, pushText, getSender, getName };

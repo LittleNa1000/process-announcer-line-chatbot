@@ -105,6 +105,6 @@ dist
 
 ngrok.exe
 .vscode
-process-files
+process-files/*
 bfg-1.14.0.jar
 src/utils/receivers.json

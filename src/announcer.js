@@ -16,6 +16,7 @@ const { readJSON, writeJSON } = require("./utils/readwritejson");
 let intervalId = null;
 let slots = [];
 let bundle = [];
+let slotOwner = [];
 let idx = 0;
 let shift = undefined;
 let totalShift = 0;
@@ -95,22 +96,28 @@ const announce = async () => {
       if (END_TIME !== -1 && shift[idx] !== 0) {
         slot[END_TIME] += ` (${shift[idx] >= 0 ? "+" : ""}${shift[idx]})`;
       }
-      slot[LOCATION] = slot[LOCATION].split("\n");
-      slot[LOCATION] = `${slot[LOCATION][0]}${
-        slot[LOCATION].length > 1
-          ? " และอื่น ๆ อีก " + (slot[LOCATION].length - 1) + " ที่"
-          : ""
-      }`;
-      slot[MEMBER] = slot[MEMBER].split("\n");
-      slot[MEMBER] = `${slot[MEMBER][0]}${
-        slot[MEMBER].length > 1
-          ? " กับคนอื่น ๆ อีก " + (slot[MEMBER].length - 1) + " คน"
-          : ""
-      }`;
-      slot[DETAILS] = slot[DETAILS].split("\n");
-      slot[DETAILS] = `${slot[DETAILS][0]}${
-        slot[DETAILS].length > 1 ? "..." : ""
-      }`;
+      if (LOCATION !== -1) {
+        slot[LOCATION] = slot[LOCATION].split("\n");
+        slot[LOCATION] = `${slot[LOCATION][0]}${
+          slot[LOCATION].length > 1
+            ? " และอื่น ๆ อีก " + (slot[LOCATION].length - 1) + " ที่"
+            : ""
+        }`;
+      }
+      if (MEMBER !== -1) {
+        slot[MEMBER] = slot[MEMBER].split("\n");
+        slot[MEMBER] = `${slot[MEMBER][0]}${
+          slot[MEMBER].length > 1
+            ? " กับคนอื่น ๆ อีก " + (slot[MEMBER].length - 1) + " คน"
+            : ""
+        }`;
+      }
+      if (DETAILS !== -1) {
+        slot[DETAILS] = slot[DETAILS].split("\n");
+        slot[DETAILS] = `${slot[DETAILS][0]}${
+          slot[DETAILS].length > 1 ? "..." : ""
+        }`;
+      }
       const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
         BEGIN_TIME !== -1 &&
         END_TIME !== -1 &&
@@ -127,15 +134,26 @@ const announce = async () => {
         DETAILS !== -1 ? "📃 " + slot[DETAILS] : ""
       }`;
       bundle.push(text);
+      slotOwner.push(OWNER !== -1 ? slot[OWNER].toUpperCase() : "");
     }
     if (bundle.length > 0) {
       const { receivers } = readJSON();
       receivers.forEach(async (e) => {
-        await pushText(e.id, bundle);
-        // copy bundle แล้ว ตัด ฝ่ายที่ไม่สนใจออก
+        let prefBundle = [];
+        if (Object.keys(e.preferences).length === 0 || OWNER === -1) {
+          prefBundle = bundle;
+        } else {
+          for (let i = 0; i < bundle.length; ++i) {
+            if (e.preferences[slotOwner[i]]) {
+              prefBundle.push(bundle[i]);
+            }
+          }
+        }
+        await pushText(e.id, prefBundle);
       });
     }
     bundle = [];
+    slotOwner = [];
     if (idx >= slots.length - 1) {
       resetIdx();
     }
@@ -144,16 +162,26 @@ const announce = async () => {
   }
 };
 
-const addReceiverId = (id) => {
+const addReceiverId = (id, arg, name) => {
   const currentTime = getCurrentTime();
   const { receivers } = readJSON();
-  const i = receivers.map((e) => e.id).indexOf(id);
+  let i = receivers.map((e) => e.id).indexOf(id);
   if (i === -1) {
-    receivers.push({ id: id, preferences: [] });
-    writeJSON(receivers);
-  } else {
+    receivers.push({ id: id, name: name, preferences: {} });
+    i = 0;
+  } else if (arg === null) {
     return null;
   }
+  if (arg !== null) {
+    receivers[i].preferences = {};
+    arg.forEach((e) => {
+      if (e.toUpperCase() === "COOR") {
+        e = "COOP";
+      }
+      receivers[i].preferences[e.toUpperCase()] = true;
+    });
+  }
+  writeJSON(receivers);
   if (
     idx >= slots.length - 1 ||
     (idx === 0 && getNextSlotTime(slots.length - 2) < currentTime)
@@ -181,7 +209,7 @@ const removeReceiverId = (id) => {
   return false;
 };
 
-const plusProcess = async (arg, isNegative, sender, id) => {
+const plusProcess = async (arg, isNegative, sender, id, name) => {
   let [, duration, atSlot] = arg;
   atSlot = Math.max(
     1,
@@ -203,7 +231,7 @@ const plusProcess = async (arg, isNegative, sender, id) => {
     shift[i] += duration;
   }
   totalShift += duration;
-  const result = addReceiverId(id);
+  const result = addReceiverId(id, null, name);
   const text = `🚨${duration < 0 ? "" : "+"}${duration} นาที ${
     totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
   } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\n⌛Slot #${atSlot} ${

@@ -7,7 +7,7 @@ const {
 } = require("./announcer");
 const { PROCESS_FILE_NAME } = require("./constants");
 const dotenv = require("dotenv");
-const { replyText, getName } = require("./client");
+const { replyText, getSender, getName } = require("./client");
 const env = dotenv.config().parsed;
 const config = {
   headers: { Authorization: `Bearer ${env.ACCESS_TOKEN_DEMO}` },
@@ -26,13 +26,24 @@ const handleEvent = async (event) => {
       event.source.type === "group"
         ? event.source.groupId
         : event.source.userId;
-    const sender = await getName(
+    const sender = await getSender(
       event.source.type === "group" ? event.source.groupId : null,
       event.source.userId
     );
-    console.log(timeStamp.toLocaleString(), sender, event.message.text);
+    const name = await getName(id);
+    console.log(
+      timeStamp.toLocaleString(),
+      sender,
+      "at",
+      name,
+      event.message.text
+    );
     if (event.message.text.substring(1, 6) === "start") {
-      const result = addReceiverId(id);
+      const result = addReceiverId(
+        id,
+        event.message.text.split(" ").slice(1),
+        name
+      );
       if (result !== null) {
         await replyText(
           event.replyToken,
@@ -57,7 +68,8 @@ const handleEvent = async (event) => {
           event.message.text.split(" "),
           op === "-" ? true : false,
           sender,
-          id
+          id,
+          name
         );
         if (result !== null) {
           await replyText(
