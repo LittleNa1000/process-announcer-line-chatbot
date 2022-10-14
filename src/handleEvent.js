@@ -127,6 +127,11 @@ const handleEvent = async (event) => {
         quota.status === 200 ? quota.data.type : null
       }`;
       await replyText(event.replyToken, text);
+    } else if (event.message.text.substring(1, 5) === "help") {
+      await replyText(
+        event.replyToken,
+        "พิมพ์ !start เพื่อเริ่มการใช้งาน\nหรือ !stop เพื่อหยุดการใช้งาน\nส่วนคู่มือแบบเต็ม ๆ ก็อันนี้เลยยย https://docs.google.com/document/d/1rs-aK5OV9isvC4HrIy0Rb4q3cD8NZsXymxfuG3JBWhs/edit?usp=sharing"
+      );
     } else {
       await replyText(event.replyToken, "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢");
     }

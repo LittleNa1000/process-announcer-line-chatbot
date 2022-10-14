@@ -130,9 +130,7 @@ const announce = async () => {
         NAME !== -1 ? '"' + slot[NAME] + '"' : ""
       }\n${LEADER !== -1 ? "⚖️ " + slot[LEADER] : ""}\n${
         LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""
-      }\n${MEMBER !== -1 ? "🏃 " + slot[MEMBER] : ""}\n${
-        DETAILS !== -1 ? "📃 " + slot[DETAILS] : ""
-      }`;
+      }\n${MEMBER !== -1 ? "🏃 " + slot[MEMBER] : ""}`;
       bundle.push(text);
       slotOwner.push(OWNER !== -1 ? slot[OWNER].toUpperCase() : "");
     }
