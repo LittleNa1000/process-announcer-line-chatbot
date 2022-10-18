@@ -14,37 +14,53 @@ const {
 const { pushText } = require("./client");
 const { readJSON, writeJSON } = require("./utils/readwritejson");
 let intervalId = null;
+let startDate = null;
 let slots = [];
 let bundle = [];
 let slotOwner = [];
 let idx = 0;
 let shift = undefined;
+let slotsBeginTime = undefined;
 let totalShift = 0;
 
 async function initAnnouncer() {
-  slots = await readProcess();
-  shift = new Array(slots.length).fill(0);
   if (intervalId !== null) {
     clearInterval(intervalId);
   }
-  resetIdx();
+  slots = await readProcess();
+  slotsBeginTime = new Array(slots.length + 10).fill(0);
+  let dateDiff = 0;
+  let temp = new Array(slots.length + 10).fill(0);
+  for (let i = 1; i < slots.length; ++i) {
+    const slotTime = slots[i][BEGIN_TIME].split(":").map((e) =>
+      Number.parseInt(e)
+    );
+    temp[i] = slotTime[0] * 60 + slotTime[1];
+    if (temp[i] < temp[i - 1]) {
+      ++dateDiff;
+    }
+    slotsBeginTime[i] = temp[i] + dateDiff * 60 * 24;
+  }
+  shift = new Array(slots.length + 10).fill(0);
+  startDate = new Date(new Date().toDateString());
+  idx = resetIdx();
   intervalId = setInterval(announce, 5 * 1000);
 }
 function resetIdx() {
   const currentTime = getCurrentTime();
   let nextSlotTime = 0;
   let minIdx = 0;
-  let minTime = 99 * 60 + 59;
+  let minTime = Number.POSITIVE_INFINITY;
   for (let i = 0; i < slots.length - 1; ++i) {
     nextSlotTime = getNextSlotTime(i);
-    if (currentTime < nextSlotTime) {
+    if (currentTime <= nextSlotTime) {
       if (nextSlotTime < minTime) {
         minTime = nextSlotTime;
         minIdx = i;
       }
     }
   }
-  idx = minIdx;
+  return minIdx;
 }
 function getVar() {
   return [
@@ -58,29 +74,28 @@ function getVar() {
     getNextSlotTime(),
   ];
 }
-
 function getCurrentTime() {
-  const currentDate = new Date();
-  return currentDate.getHours() * 60 + currentDate.getMinutes();
+  const currentTime = new Date();
+  const currentDate = new Date(currentTime.toDateString());
+  const dateDiff =
+    (currentDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
+  return (
+    currentTime.getHours() * 60 + currentTime.getMinutes() + 60 * 24 * dateDiff
+  );
 }
 function getNextSlotTime(index = idx) {
   if (index >= slots.length - 1) {
-    return (23 + 24) * 60 + 59;
+    return Number.POSITIVE_INFINITY;
   }
-  const nextSlot = slots[index + 1][BEGIN_TIME].split(":").map((e) =>
-    Number.parseInt(e)
-  );
-  return (nextSlot[0] * 60 + nextSlot[1] + shift[index + 1]) % (24 * 60);
+  return slotsBeginTime[index + 1];
 }
 const announce = async () => {
   if (idx < slots.length - 1) {
     let nextSlotTime = getNextSlotTime();
     let currentTime = getCurrentTime();
     while (
-      !(
-        nextSlotTime > currentTime ||
-        (idx == 0 && nextSlotTime !== currentTime)
-      )
+      nextSlotTime === currentTime ||
+      (nextSlotTime <= currentTime && idx !== 0)
     ) {
       if (bundle.length >= 5) {
         setTimeout(announce, 0.5 * 1000);
@@ -153,10 +168,10 @@ const announce = async () => {
     bundle = [];
     slotOwner = [];
     if (idx >= slots.length - 1) {
-      resetIdx();
+      idx = resetIdx();
     }
   } else {
-    resetIdx();
+    idx = resetIdx();
   }
 };
 
@@ -227,6 +242,7 @@ const plusProcess = async (arg, isNegative, sender, id, name) => {
 
   for (let i = atSlot; i < slots.length; ++i) {
     shift[i] += duration;
+    slotsBeginTime[i] += duration;
   }
   totalShift += duration;
   const result = addReceiverId(id, null, name);
