@@ -11,7 +11,11 @@ import { constants } from "./constants";
 const { PROCESS_FILE_NAME } = constants;
 const env = dotenv.config().parsed;
 const config = {
-  headers: { Authorization: `Bearer ${env.ACCESS_TOKEN_DEMO}` },
+  headers: {
+    Authorization: `Bearer ${
+      env.NODE_ENV === "development" ? env.ACCESS_TOKEN_DEMO : env.ACCESS_TOKEN
+    }`,
+  },
 };
 
 function initHandleEvent() {}
@@ -31,14 +35,7 @@ const handleEvent = async (event) => {
       event.source.type === "group" ? event.source.groupId : null,
       event.source.userId
     );
-    const name = await getName(id);
-    console.log(
-      timeStamp.toLocaleString(),
-      sender,
-      "at",
-      name,
-      event.message.text
-    );
+    const name = id.charAt(0) === "U" ? "private chat" : await getName(id);
     if (event.message.text.substring(1, 6) === "start") {
       const result = addReceiverId(
         id,
@@ -92,29 +89,34 @@ const handleEvent = async (event) => {
         "📁ตอนนี้ Process เป็นไฟล์ `" + PROCESS_FILE_NAME + "` งับ"
       );
     } else if (event.message.text.substring(1, 6) === "debug") {
-      const [
-        intervalId,
-        receivers,
-        totalSlots,
-        idx,
-        totalShift,
-        nextSlotShift,
-        currentTime,
-        nextSlotTime,
-      ] = getVar();
-      const nextSlotDate = new Date(0);
-      nextSlotDate.setMinutes(nextSlotTime);
-      const currentDate = new Date(0);
-      currentDate.setMinutes(currentTime);
-      const text = `Interval: ${
-        intervalId ? `Running (${intervalId})` : "Rest"
-      }\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${currentDate
-        .toISOString()
-        .substring(11, 16)}\nNext Slot: ${nextSlotDate
-        .toISOString()
-        .substring(11, 16)}`;
-      console.log(text.split("\n").toString());
-      await replyText(event.replyToken, text);
+      const variables = getVar();
+      if (variables.length === 8) {
+        const [
+          intervalId,
+          receivers,
+          totalSlots,
+          idx,
+          totalShift,
+          nextSlotShift,
+          currentTime,
+          nextSlotTime,
+        ] = variables;
+        const nextSlotDate = new Date(0);
+        nextSlotDate.setMinutes(nextSlotTime);
+        const currentDate = new Date(0);
+        currentDate.setMinutes(currentTime);
+        const text = `Interval: ${
+          intervalId ? `Running (${intervalId})` : "Rest"
+        }\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${currentDate
+          .toISOString()
+          .substring(11, 16)}\nNext Slot: ${nextSlotDate
+          .toISOString()
+          .substring(11, 16)}`;
+        console.log(text.split("\n").toString());
+        await replyText(event.replyToken, text);
+      } else {
+        await replyText(event.replyToken, "!debug มีปัญหางับ มาเช็กด่วน ๆ");
+      }
     } else if (event.message.text.substring(1, 6) === "quota") {
       const usage = await axios
         .get("https://api.line.me/v2/bot/message/quota/consumption", config)
@@ -135,7 +137,15 @@ const handleEvent = async (event) => {
       );
     } else {
       await replyText(event.replyToken, "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢");
+      return;
     }
+    console.log(
+      timeStamp.toLocaleString(),
+      sender,
+      "in",
+      name,
+      event.message.text
+    );
   }
   return;
 };

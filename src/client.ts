@@ -2,7 +2,11 @@ import axios from "axios";
 import * as dotenv from "dotenv";
 const env = dotenv.config().parsed;
 const config = {
-  headers: { Authorization: `Bearer ${env.ACCESS_TOKEN_DEMO}` },
+  headers: {
+    Authorization: `Bearer ${
+      env.NODE_ENV === "development" ? env.ACCESS_TOKEN_DEMO : env.ACCESS_TOKEN
+    }`,
+  },
 };
 let client = null;
 function initClient(c) {

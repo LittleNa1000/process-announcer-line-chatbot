@@ -28,7 +28,7 @@ async function initAnnouncer() {
   if (intervalId !== null) {
     clearInterval(intervalId);
   }
-  slots = readProcess();
+  slots = await readProcess();
   slotsBeginTime = new Array(slots.length + 10).fill(0);
   let dateDiff = 0;
   let temp = new Array(slots.length + 10).fill(0);
@@ -64,16 +64,21 @@ function resetIdx() {
   return minIdx;
 }
 function getVar() {
-  return [
-    intervalId,
-    readJSON().receivers.length,
-    slots.length - 1,
-    idx,
-    totalShift,
-    idx < slots.length - 1 ? shift[idx + 1] : "N/A",
-    getCurrentTime(),
-    getNextSlotTime(),
-  ];
+  try {
+    return [
+      intervalId,
+      readJSON().receivers.length,
+      slots.length - 1,
+      idx,
+      totalShift,
+      idx < slots.length - 1 ? shift[idx + 1] : "N/A",
+      getCurrentTime(),
+      getNextSlotTime(),
+    ];
+  } catch (e) {
+    console.log("getVar() Error:", e);
+  }
+  return [];
 }
 function getCurrentTime() {
   const currentTime = new Date();
@@ -144,7 +149,7 @@ const announce = async () => {
           : ""
       }\n${OWNER !== -1 ? "📋 " + slot[OWNER] : ""} ${
         NAME !== -1 ? '"' + slot[NAME] + '"' : ""
-      }\n${LEADER !== -1 ? "⚖️ " + slot[LEADER] : ""}\n${
+      }\n${LEADER !== -1 ? "ผต. " + slot[LEADER] : ""}\n${
         LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""
       }\n${MEMBER !== -1 ? "🏃 " + slot[MEMBER] : ""}`;
       bundle.push(text);

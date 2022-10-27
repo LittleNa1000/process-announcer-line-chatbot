@@ -9,8 +9,10 @@ const env = dotenv.config().parsed;
 const app = express();
 
 const lineConfig = {
-  channelAccessToken: env.ACCESS_TOKEN_DEMO,
-  channelSecret: env.SECRET_TOKEN_DEMO,
+  channelAccessToken:
+    env.NODE_ENV === "development" ? env.ACCESS_TOKEN_DEMO : env.ACCESS_TOKEN,
+  channelSecret:
+    env.NODE_ENV === "development" ? env.SECRET_TOKEN_DEMO : env.SECRET_TOKEN,
 };
 const client = new line.Client(lineConfig);
 
