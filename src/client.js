@@ -35,6 +35,7 @@ async function pushText(id, bundle) {
   }
   // console.log(id, messages);
   // return;
+  if (messages.length === 0) return;
   await client.pushMessage(id, messages).catch((err) => {
     console.log(err);
   });

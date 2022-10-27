@@ -115,7 +115,7 @@ const announce = async () => {
         slot[LOCATION] = slot[LOCATION].split("\n");
         slot[LOCATION] = `${slot[LOCATION][0]}${
           slot[LOCATION].length > 1
-            ? " และอื่น ๆ อีก " + (slot[LOCATION].length - 1) + " ที่"
+            ? " และอื่น ๆ อีก " + (slot[LOCATION].length - 1) + " บรรทัด"
             : ""
         }`;
       }
@@ -123,7 +123,7 @@ const announce = async () => {
         slot[MEMBER] = slot[MEMBER].split("\n");
         slot[MEMBER] = `${slot[MEMBER][0]}${
           slot[MEMBER].length > 1
-            ? " กับคนอื่น ๆ อีก " + (slot[MEMBER].length - 1) + " คน"
+            ? " และอื่น ๆ อีก " + (slot[MEMBER].length - 1) + " บรรทัด"
             : ""
         }`;
       }
