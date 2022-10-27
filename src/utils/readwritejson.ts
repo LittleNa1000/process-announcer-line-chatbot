@@ -1,4 +1,4 @@
-const fs = require("fs");
+import * as fs from "fs";
 const path = "./src/utils/receivers.json";
 
 function writeJSON(receivers = []) {
@@ -8,10 +8,10 @@ function writeJSON(receivers = []) {
 function readJSON() {
   if (fs.existsSync(path)) {
     const rawdata = fs.readFileSync(path);
-    const receivers = JSON.parse(rawdata);
+    const receivers = JSON.parse(rawdata.toString());
     return receivers;
   }
   writeJSON();
   return { receivers: [] };
 }
-module.exports = { writeJSON, readJSON };
+export { writeJSON, readJSON };

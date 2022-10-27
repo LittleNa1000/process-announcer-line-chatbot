@@ -1,4 +1,4 @@
-module.exports = Object.freeze({
+export const constants = {
   NUM: 0,
   BEGIN_TIME: 1,
   END_TIME: 2,
@@ -10,4 +10,4 @@ module.exports = Object.freeze({
   MEMBER: 8,
   DETAILS: 9,
   PROCESS_FILE_NAME: "25-7-65.csv",
-});
+};

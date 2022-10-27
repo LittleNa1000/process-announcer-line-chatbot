@@ -1,5 +1,5 @@
-const axios = require("axios");
-const dotenv = require("dotenv");
+import axios from "axios";
+import * as dotenv from "dotenv";
 const env = dotenv.config().parsed;
 const config = {
   headers: { Authorization: `Bearer ${env.ACCESS_TOKEN_DEMO}` },
@@ -84,4 +84,4 @@ async function getName(id) {
   }
   return name;
 }
-module.exports = { initClient, replyText, pushText, getSender, getName };
+export { initClient, replyText, pushText, getSender, getName };

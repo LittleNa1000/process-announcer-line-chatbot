@@ -1,6 +1,7 @@
-const fs = require("fs");
-const { parse } = require("csv-parse");
-const { PROCESS_FILE_NAME } = require("../constants");
+import * as fs from "fs";
+import { parse } from "csv-parse";
+import { constants } from "../constants";
+const { PROCESS_FILE_NAME } = constants;
 
 const csvPromise = new Promise((resolve, reject) => {
   fs.readFile(`./process-files/${PROCESS_FILE_NAME}`, (err, fileData) => {
@@ -13,4 +14,4 @@ async function readProcess() {
   return await csvPromise;
 }
 
-module.exports = { readProcess };
+export { readProcess };

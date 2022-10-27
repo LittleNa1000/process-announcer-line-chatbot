@@ -1,4 +1,5 @@
-const { readProcess } = require("./utils/readcsv");
+import { readProcess } from "./utils/readcsv";
+import { constants } from "./constants";
 const {
   NUM,
   BEGIN_TIME,
@@ -10,12 +11,12 @@ const {
   LEADER,
   MEMBER,
   DETAILS,
-} = require("./constants");
-const { pushText } = require("./client");
-const { readJSON, writeJSON } = require("./utils/readwritejson");
+} = constants;
+import { pushText } from "./client";
+import { readJSON, writeJSON } from "./utils/readwritejson";
 let intervalId = null;
 let startDate = null;
-let slots = [];
+let slots: any;
 let bundle = [];
 let slotOwner = [];
 let idx = 0;
@@ -27,7 +28,7 @@ async function initAnnouncer() {
   if (intervalId !== null) {
     clearInterval(intervalId);
   }
-  slots = await readProcess();
+  slots = readProcess();
   slotsBeginTime = new Array(slots.length + 10).fill(0);
   let dateDiff = 0;
   let temp = new Array(slots.length + 10).fill(0);
@@ -228,7 +229,7 @@ const plusProcess = async (arg, isNegative, sender, id, name) => {
     1,
     atSlot === "now" ? idx : atSlot === "next" ? idx + 1 : parseInt(atSlot)
   );
-  duration = isNegative ? parseInt(-duration) : parseInt(duration);
+  duration = isNegative ? -parseInt(duration) : parseInt(duration);
   if (
     !(
       Number.isInteger(duration) &&
@@ -265,10 +266,4 @@ const plusProcess = async (arg, isNegative, sender, id, name) => {
   return result;
 };
 
-module.exports = {
-  initAnnouncer,
-  addReceiverId,
-  removeReceiverId,
-  plusProcess,
-  getVar,
-};
+export { initAnnouncer, addReceiverId, removeReceiverId, plusProcess, getVar };

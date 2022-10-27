@@ -1,13 +1,14 @@
-const axios = require("axios");
-const {
+import axios from "axios";
+import * as dotenv from "dotenv";
+import {
   addReceiverId,
   removeReceiverId,
   plusProcess,
   getVar,
-} = require("./announcer");
-const { PROCESS_FILE_NAME } = require("./constants");
-const dotenv = require("dotenv");
-const { replyText, getSender, getName } = require("./client");
+} from "./announcer";
+import { replyText, getSender, getName } from "./client";
+import { constants } from "./constants";
+const { PROCESS_FILE_NAME } = constants;
 const env = dotenv.config().parsed;
 const config = {
   headers: { Authorization: `Bearer ${env.ACCESS_TOKEN_DEMO}` },
@@ -138,4 +139,4 @@ const handleEvent = async (event) => {
   }
   return;
 };
-module.exports = { handleEvent, initHandleEvent };
+export { handleEvent, initHandleEvent };
