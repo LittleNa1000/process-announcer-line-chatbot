@@ -63,7 +63,7 @@ function resetIdx() {
   }
   return minIdx;
 }
-function getVar() {
+function getVariables() {
   try {
     return [
       intervalId,
@@ -76,7 +76,7 @@ function getVar() {
       getNextSlotTime(),
     ];
   } catch (e) {
-    console.log("getVar() Error:", e);
+    console.log("getVariables() Error:", e);
   }
   return [];
 }
@@ -147,7 +147,7 @@ const announce = async () => {
           : BEGIN_TIME !== -1
           ? "🔔 `" + slot[BEGIN_TIME] + "`"
           : ""
-      }\n${OWNER !== -1 ? "📋 " + slot[OWNER] : ""} ${
+      }\n${OWNER !== -1 ? "ฝ่าย " + slot[OWNER] : ""} ${
         NAME !== -1 ? '"' + slot[NAME] + '"' : ""
       }\n${LEADER !== -1 ? "ผต. " + slot[LEADER] : ""}\n${
         LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""
@@ -157,13 +157,20 @@ const announce = async () => {
     }
     if (bundle.length > 0) {
       const { receivers } = readJSON();
-      receivers.forEach(async (e) => {
+      receivers.forEach(async (e: any) => {
         let prefBundle = [];
-        if (Object.keys(e.preferences).length === 0 || OWNER === -1) {
+        let isMatch = false;
+        if (e.preferences.length === 0 || OWNER === -1) {
           prefBundle = bundle;
         } else {
           for (let i = 0; i < bundle.length; ++i) {
-            if (e.preferences[slotOwner[i]]) {
+            isMatch = false;
+            e.preferences.forEach((pref: string) => {
+              if (slotOwner[i].replace("COOR", "COOP").match(pref)) {
+                isMatch = true;
+              }
+            });
+            if (isMatch) {
               prefBundle.push(bundle[i]);
             }
           }
@@ -173,11 +180,8 @@ const announce = async () => {
     }
     bundle = [];
     slotOwner = [];
-    if (idx >= slots.length - 1) {
-      idx = resetIdx();
-    }
   } else {
-    idx = resetIdx();
+    idx = 0;
   }
 };
 
@@ -186,18 +190,18 @@ const addReceiverId = (id, arg, name) => {
   const { receivers } = readJSON();
   let i = receivers.map((e) => e.id).indexOf(id);
   if (i === -1) {
-    receivers.push({ id: id, name: name, preferences: {} });
+    receivers.push({ id: id, name: name, preferences: [] });
     i = 0;
   } else if (arg === null) {
     return null;
   }
   if (arg !== null) {
-    receivers[i].preferences = {};
+    receivers[i].preferences = [];
     arg.forEach((e) => {
       if (e.toUpperCase() === "COOR") {
         e = "COOP";
       }
-      receivers[i].preferences[e.toUpperCase()] = true;
+      receivers[i].preferences.push(e.toUpperCase());
     });
   }
   writeJSON(receivers);
@@ -228,8 +232,8 @@ const removeReceiverId = (id) => {
   return false;
 };
 
-const plusProcess = async (arg, isNegative, sender, id, name) => {
-  let [, duration, atSlot] = arg;
+const plusProcess = async (params, isNegative, sender, id, name) => {
+  let [, duration, atSlot] = params;
   atSlot = Math.max(
     1,
     atSlot === "now" ? idx : atSlot === "next" ? idx + 1 : parseInt(atSlot)
@@ -271,4 +275,10 @@ const plusProcess = async (arg, isNegative, sender, id, name) => {
   return result;
 };
 
-export { initAnnouncer, addReceiverId, removeReceiverId, plusProcess, getVar };
+export {
+  initAnnouncer,
+  addReceiverId,
+  removeReceiverId,
+  plusProcess,
+  getVariables,
+};

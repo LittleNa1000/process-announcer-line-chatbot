@@ -1,18 +1,23 @@
-const line = require("@line/bot-sdk");
-const express = require("express");
-const dotenv = require("dotenv");
-const { handleEvent, initHandleEvent } = require("./src/handleEvent");
-const { initAnnouncer } = require("./src/announcer");
-const { initClient } = require("./src/client");
-
+import * as line from "@line/bot-sdk";
+import * as express from "express";
+import * as dotenv from "dotenv";
+import { handleEvent, initHandleEvent } from "./src/handleEvent";
+import { initAnnouncer } from "./src/announcer";
+import { initClient } from "./src/client";
+import { constants } from "./src/constants";
+const { PROCESS_FILE_NAME } = constants;
 const env = dotenv.config().parsed;
 const app = express();
 
 const lineConfig = {
   channelAccessToken:
-    env.NODE_ENV === "development" ? env.ACCESS_TOKEN_DEMO : env.ACCESS_TOKEN,
+    env!.NODE_ENV === "development"
+      ? env!.ACCESS_TOKEN_DEMO
+      : env!.ACCESS_TOKEN,
   channelSecret:
-    env.NODE_ENV === "development" ? env.SECRET_TOKEN_DEMO : env.SECRET_TOKEN,
+    env!.NODE_ENV === "development"
+      ? env!.SECRET_TOKEN_DEMO
+      : env!.SECRET_TOKEN,
 };
 const client = new line.Client(lineConfig);
 
@@ -28,9 +33,13 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
   }
 });
 
-app.listen(env.PORT, async () => {
+app.listen(env!.PORT, async () => {
   initClient(client);
   initHandleEvent();
   await initAnnouncer();
-  console.log(`on port ${env.PORT}`);
+  console.log(
+    `On port ${env!.PORT}, process: ${PROCESS_FILE_NAME}, NODE_ENV: ${
+      env!.NODE_ENV
+    }, Allow push messages: ${env!.ALLOW_PUSH_MESSAGE}`
+  );
 });

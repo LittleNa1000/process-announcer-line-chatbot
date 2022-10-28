@@ -22,7 +22,7 @@ async function replyText(replyToken, text) {
       console.log(err);
     });
 }
-async function pushText(id, bundle) {
+async function pushText(id: string, bundle: any) {
   let messages = [];
   if (Array.isArray(bundle)) {
     bundle.forEach((element) => {
@@ -37,15 +37,17 @@ async function pushText(id, bundle) {
       text: bundle,
     });
   }
-  // console.log(id, messages);
-  // return;
+  if (env.ALLOW_PUSH_MESSAGE === "false") {
+    console.log("pushText", id, messages);
+    return;
+  }
   if (messages.length === 0) return;
   await client.pushMessage(id, messages).catch((err) => {
     console.log(err);
   });
 }
-async function getSender(groupId, userId) {
-  let sender = "Unknown";
+async function getSender(groupId: string, userId: string) {
+  let sender = "Unknown Sender";
   if (groupId !== null) {
     await client
       .getGroupMemberProfile(groupId, userId)
@@ -67,9 +69,9 @@ async function getSender(groupId, userId) {
   }
   return sender;
 }
-async function getName(id) {
-  let name = "Unknown";
-  if (id[0] === "U") {
+async function getName(id: string) {
+  let name = "Unknown Name";
+  if (id.charAt(0) === "U") {
     await client
       .getProfile(id)
       .then((profile) => {
@@ -78,7 +80,7 @@ async function getName(id) {
       .catch((err) => {
         console.log(err);
       });
-  } else if (id[0] === "C") {
+  } else if (id.charAt(0) === "C") {
     await axios
       .get(`https://api.line.me/v2/bot/group/${id}/summary`, config)
       .then((summary) => {

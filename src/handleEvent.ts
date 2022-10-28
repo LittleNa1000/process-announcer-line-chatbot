@@ -4,7 +4,7 @@ import {
   addReceiverId,
   removeReceiverId,
   plusProcess,
-  getVar,
+  getVariables,
 } from "./announcer";
 import { replyText, getSender, getName } from "./client";
 import { constants } from "./constants";
@@ -35,8 +35,10 @@ const handleEvent = async (event) => {
       event.source.type === "group" ? event.source.groupId : null,
       event.source.userId
     );
-    const name = id.charAt(0) === "U" ? "private chat" : await getName(id);
+    const name = await getName(id);
+    let commandMessage = "Unknown Command";
     if (event.message.text.substring(1, 6) === "start") {
+      commandMessage = event.message.text.substring(1);
       const result = addReceiverId(
         id,
         event.message.text.split(" ").slice(1),
@@ -51,6 +53,7 @@ const handleEvent = async (event) => {
         );
       }
     } else if (event.message.text.substring(1, 5) === "stop") {
+      commandMessage = "stop";
       const success = removeReceiverId(id);
       await replyText(
         event.replyToken,
@@ -62,13 +65,15 @@ const handleEvent = async (event) => {
     ) {
       try {
         const op = event.message.text.substring(1, 2);
+        const arg = event.message.text.split(" ");
         const result = await plusProcess(
-          event.message.text.split(" "),
+          arg,
           op === "-" ? true : false,
           sender,
           id,
           name
         );
+        commandMessage = op + " " + arg[1] + " " + arg[2];
         if (result !== null) {
           await replyText(
             event.replyToken,
@@ -84,13 +89,15 @@ const handleEvent = async (event) => {
         );
       }
     } else if (event.message.text.substring(1, 9) === "filename") {
+      commandMessage = "filename";
       await replyText(
         event.replyToken,
         "📁ตอนนี้ Process เป็นไฟล์ `" + PROCESS_FILE_NAME + "` งับ"
       );
     } else if (event.message.text.substring(1, 6) === "debug") {
-      const variables = getVar();
-      if (variables.length === 8) {
+      commandMessage = "debug";
+      const variables = getVariables();
+      try {
         const [
           intervalId,
           receivers,
@@ -102,7 +109,11 @@ const handleEvent = async (event) => {
           nextSlotTime,
         ] = variables;
         const nextSlotDate = new Date(0);
-        nextSlotDate.setMinutes(nextSlotTime);
+        nextSlotDate.setMinutes(
+          nextSlotTime === Number.POSITIVE_INFINITY
+            ? 23 * 60 + 59
+            : nextSlotTime
+        );
         const currentDate = new Date(0);
         currentDate.setMinutes(currentTime);
         const text = `Interval: ${
@@ -114,10 +125,12 @@ const handleEvent = async (event) => {
           .substring(11, 16)}`;
         console.log(text.split("\n").toString());
         await replyText(event.replyToken, text);
-      } else {
+      } catch (e) {
+        console.log(e);
         await replyText(event.replyToken, "!debug มีปัญหางับ มาเช็กด่วน ๆ");
       }
     } else if (event.message.text.substring(1, 6) === "quota") {
+      commandMessage = "quota";
       const usage = await axios
         .get("https://api.line.me/v2/bot/message/quota/consumption", config)
         .catch();
@@ -131,6 +144,7 @@ const handleEvent = async (event) => {
       }`;
       await replyText(event.replyToken, text);
     } else if (event.message.text.substring(1, 5) === "help") {
+      commandMessage = "help";
       await replyText(
         event.replyToken,
         "พิมพ์ !start เพื่อเริ่มการใช้งาน\nหรือ !stop เพื่อหยุดการใช้งาน\nส่วนคู่มือแบบเต็ม ๆ ก็อันนี้เลยยย https://docs.google.com/document/d/1rs-aK5OV9isvC4HrIy0Rb4q3cD8NZsXymxfuG3JBWhs/edit?usp=sharing"
@@ -143,8 +157,8 @@ const handleEvent = async (event) => {
       timeStamp.toLocaleString(),
       sender,
       "in",
-      name,
-      event.message.text
+      id.charAt(0) === "U" ? "private chat" : name,
+      commandMessage
     );
   }
   return;

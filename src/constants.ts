@@ -9,5 +9,5 @@ export const constants = {
   LEADER: 7,
   MEMBER: 8,
   DETAILS: 9,
-  PROCESS_FILE_NAME: "25-7-65.csv",
+  PROCESS_FILE_NAME: "process-test.csv",
 };
