@@ -12,7 +12,8 @@ let client = null;
 function initClient(c) {
   client = c;
 }
-async function replyText(replyToken, text) {
+async function replyText(replyToken, text: string) {
+  if (text.length === 0) return;
   await client
     .replyMessage(replyToken, {
       type: "text",
@@ -22,20 +23,22 @@ async function replyText(replyToken, text) {
       console.log(err);
     });
 }
-async function pushText(id: string, bundle: any) {
+async function pushText(id: string, bundle: string | Array<string>) {
   let messages = [];
   if (Array.isArray(bundle)) {
-    bundle.forEach((element) => {
-      messages.push({
-        type: "text",
-        text: element,
-      });
+    bundle.forEach((element: string) => {
+      if (element.length !== 0)
+        messages.push({
+          type: "text",
+          text: element,
+        });
     });
   } else {
-    messages.push({
-      type: "text",
-      text: bundle,
-    });
+    if (bundle.length !== 0)
+      messages.push({
+        type: "text",
+        text: bundle,
+      });
   }
   if (env.ALLOW_PUSH_MESSAGE === "false") {
     console.log("pushText", id, messages);

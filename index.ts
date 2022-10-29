@@ -34,11 +34,12 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
 });
 
 app.listen(env!.PORT, async () => {
+  console.log(`On port ${env!.PORT}`);
   initClient(client);
   initHandleEvent();
   await initAnnouncer();
   console.log(
-    `On port ${env!.PORT}, process: ${PROCESS_FILE_NAME}, NODE_ENV: ${
+    `process: ${PROCESS_FILE_NAME}, NODE_ENV: ${
       env!.NODE_ENV
     }, Allow push messages: ${env!.ALLOW_PUSH_MESSAGE}`
   );

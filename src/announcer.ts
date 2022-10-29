@@ -13,7 +13,12 @@ const {
   DETAILS,
 } = constants;
 import { pushText } from "./client";
-import { readJSON, writeJSON } from "./utils/readwritejson";
+import {
+  readReceivers,
+  writeBackupShift,
+  writeReceivers,
+  readBackupShift,
+} from "./utils/readwritejson";
 let intervalId = null;
 let startDate = null;
 let slots: any;
@@ -43,6 +48,12 @@ async function initAnnouncer() {
     slotsBeginTime[i] = temp[i] + dateDiff * 60 * 24;
   }
   shift = new Array(slots.length + 10).fill(0);
+  const { backupShift } = readBackupShift();
+  for (let i = 1; i < Math.min(slots.length, backupShift.length); ++i) {
+    shift[i] += backupShift[i];
+    slotsBeginTime[i] += backupShift[i];
+  }
+  totalShift = shift[slots.length - 1];
   startDate = new Date(new Date().toDateString());
   idx = resetIdx();
   intervalId = setInterval(announce, 5 * 1000);
@@ -67,7 +78,7 @@ function getVariables() {
   try {
     return [
       intervalId,
-      readJSON().receivers.length,
+      readReceivers().receivers.length,
       slots.length - 1,
       idx,
       totalShift,
@@ -121,7 +132,7 @@ const announce = async () => {
         slot[LOCATION] = slot[LOCATION].split("\n");
         slot[LOCATION] = `${slot[LOCATION][0]}${
           slot[LOCATION].length > 1
-            ? " และอื่น ๆ อีก " + (slot[LOCATION].length - 1) + " บรรทัด"
+            ? " และอีก " + (slot[LOCATION].length - 1) + " ที่"
             : ""
         }`;
       }
@@ -129,7 +140,7 @@ const announce = async () => {
         slot[MEMBER] = slot[MEMBER].split("\n");
         slot[MEMBER] = `${slot[MEMBER][0]}${
           slot[MEMBER].length > 1
-            ? " และอื่น ๆ อีก " + (slot[MEMBER].length - 1) + " บรรทัด"
+            ? " กับอีก " + (slot[MEMBER].length - 1) + " คน"
             : ""
         }`;
       }
@@ -147,35 +158,32 @@ const announce = async () => {
           : BEGIN_TIME !== -1
           ? "🔔 `" + slot[BEGIN_TIME] + "`"
           : ""
-      }\n${OWNER !== -1 ? "ฝ่าย " + slot[OWNER] : ""} ${
-        NAME !== -1 ? '"' + slot[NAME] + '"' : ""
-      }\n${LEADER !== -1 ? "ผต. " + slot[LEADER] : ""}\n${
-        LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""
-      }\n${MEMBER !== -1 ? "🏃 " + slot[MEMBER] : ""}`;
+      }\n${OWNER !== -1 ? slot[OWNER] : ""} ${NAME !== -1 ? slot[NAME] : ""}\n${
+        LEADER !== -1 ? "ผต. " + slot[LEADER] : ""
+      }\n${LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""}\n${
+        MEMBER !== -1 ? "🏃 " + slot[MEMBER] : ""
+      }`;
       bundle.push(text);
       slotOwner.push(OWNER !== -1 ? slot[OWNER].toUpperCase() : "");
     }
     if (bundle.length > 0) {
-      const { receivers } = readJSON();
-      receivers.forEach(async (e: any) => {
+      const { receivers } = readReceivers();
+      receivers.forEach(async (receiver: any) => {
         let prefBundle = [];
         let isMatch = false;
-        if (e.preferences.length === 0 || OWNER === -1) {
+        if (receiver.preferences.length === 0 || OWNER === -1) {
           prefBundle = bundle;
         } else {
           for (let i = 0; i < bundle.length; ++i) {
             isMatch = false;
-            e.preferences.forEach((pref: string) => {
-              if (slotOwner[i].replace("COOR", "COOP").match(pref)) {
+            receiver.preferences.forEach((pref: string) => {
+              if (slotOwner[i].replace("COOR", "COOP").match(pref))
                 isMatch = true;
-              }
             });
-            if (isMatch) {
-              prefBundle.push(bundle[i]);
-            }
+            if (isMatch) prefBundle.push(bundle[i]);
           }
         }
-        await pushText(e.id, prefBundle);
+        await pushText(receiver.id, prefBundle);
       });
     }
     bundle = [];
@@ -185,26 +193,26 @@ const announce = async () => {
   }
 };
 
-const addReceiverId = (id, arg, name) => {
+const addReceiverId = (id: string, arg: Array<string>, name: string) => {
+  console.log("in", id, arg, name);
   const currentTime = getCurrentTime();
-  const { receivers } = readJSON();
+  const { receivers } = readReceivers();
   let i = receivers.map((e) => e.id).indexOf(id);
   if (i === -1) {
     receivers.push({ id: id, name: name, preferences: [] });
-    i = 0;
+    i = receivers.length - 1;
   } else if (arg === null) {
     return null;
   }
   if (arg !== null) {
     receivers[i].preferences = [];
     arg.forEach((e) => {
-      if (e.toUpperCase() === "COOR") {
-        e = "COOP";
-      }
-      receivers[i].preferences.push(e.toUpperCase());
+      if (e.toUpperCase() === "COOR") e = "COOP";
+      if (e.length !== 0) receivers[i].preferences.push(e.toUpperCase());
     });
   }
-  writeJSON(receivers);
+  console.log("out", id, arg, name, receivers);
+  writeReceivers(receivers);
   if (
     idx >= slots.length - 1 ||
     (idx === 0 && getNextSlotTime(slots.length - 2) < currentTime)
@@ -221,18 +229,24 @@ const addReceiverId = (id, arg, name) => {
   ];
 };
 
-const removeReceiverId = (id) => {
-  const { receivers } = readJSON();
+const removeReceiverId = (id: string) => {
+  const { receivers } = readReceivers();
   const i = receivers.map((e) => e.id).indexOf(id);
   if (i !== -1) {
     receivers.splice(i, 1);
-    writeJSON(receivers);
+    writeReceivers(receivers);
     return true;
   }
   return false;
 };
 
-const plusProcess = async (params, isNegative, sender, id, name) => {
+const plusProcess = async (
+  params: Array<any>,
+  isNegative: boolean,
+  sender: string,
+  id: string,
+  name: string
+) => {
   let [, duration, atSlot] = params;
   atSlot = Math.max(
     1,
@@ -249,11 +263,11 @@ const plusProcess = async (params, isNegative, sender, id, name) => {
   ) {
     throw "wrong argument";
   }
-
   for (let i = atSlot; i < slots.length; ++i) {
     shift[i] += duration;
     slotsBeginTime[i] += duration;
   }
+  writeBackupShift(shift);
   totalShift += duration;
   const result = addReceiverId(id, null, name);
   const text = `🚨${duration < 0 ? "" : "+"}${duration} นาที ${
@@ -267,7 +281,7 @@ const plusProcess = async (params, isNegative, sender, id, name) => {
       ? `(${shift[atSlot] >= 0 ? "+" : ""}${shift[atSlot]})`
       : ""
   }\nสั่งโดย ${sender}`;
-  const { receivers } = readJSON();
+  const { receivers } = readReceivers();
   receivers.forEach(async (e) => {
     await pushText(e.id, text);
   });

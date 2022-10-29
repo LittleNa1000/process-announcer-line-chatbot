@@ -19,6 +19,11 @@ const config = {
 };
 
 function initHandleEvent() {}
+function addReceiverReplyText(result: number | Array<number | string>) {
+  return result === -1
+    ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
+    : `เดี๋ยวจะเริ่มประกาศแล้วนะงับ😉\nSlot ถัดไป #${result[0]} เริ่ม ${result[1]} น้า`;
+}
 const handleEvent = async (event) => {
   if (
     event.type == "message" &&
@@ -45,12 +50,7 @@ const handleEvent = async (event) => {
         name
       );
       if (result !== null) {
-        await replyText(
-          event.replyToken,
-          result === -1
-            ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
-            : `เริ่มประกาศตั้งแต่ Slot #${result[0]} ตอน ${result[1]} น้า😉`
-        );
+        await replyText(event.replyToken, addReceiverReplyText(result));
       }
     } else if (event.message.text.substring(1, 5) === "stop") {
       commandMessage = "stop";
@@ -75,17 +75,12 @@ const handleEvent = async (event) => {
         );
         commandMessage = op + " " + arg[1] + " " + arg[2];
         if (result !== null) {
-          await replyText(
-            event.replyToken,
-            result === -1
-              ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
-              : `เริ่มประกาศตั้งแต่ Slot #${result[0]} ตอน ${result[1]} น้า😉`
-          );
+          await replyText(event.replyToken, addReceiverReplyText(result));
         }
       } catch (err) {
         await replyText(
           event.replyToken,
-          'ใส่คำสั่งบวกโปรเซสผิดงับ❌\nต้องแบบนี้น้า✔️ "!+ (นาที) (Slot)" หรือ "!- (นาที) (Slot)"'
+          'ใส่คำสั่งบวกโปรเซสผิดงับ❌\nต้องแบบนี้น้า✔️ "!+ <minutes> <now/next/Slot No> " หรือ "!- <minutes> <now/next/Slot No> "'
         );
       }
     } else if (event.message.text.substring(1, 9) === "filename") {
@@ -109,13 +104,9 @@ const handleEvent = async (event) => {
           nextSlotTime,
         ] = variables;
         const nextSlotDate = new Date(0);
-        nextSlotDate.setMinutes(
-          nextSlotTime === Number.POSITIVE_INFINITY
-            ? 23 * 60 + 59
-            : nextSlotTime
-        );
+        nextSlotDate.setMinutes(Math.min(nextSlotTime, 23 * 60 + 59));
         const currentDate = new Date(0);
-        currentDate.setMinutes(currentTime);
+        currentDate.setMinutes(Math.min(currentTime, 23 * 60 + 59));
         const text = `Interval: ${
           intervalId ? `Running (${intervalId})` : "Rest"
         }\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${currentDate

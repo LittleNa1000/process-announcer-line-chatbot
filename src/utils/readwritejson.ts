@@ -1,17 +1,31 @@
 import * as fs from "fs";
-const path = "./src/utils/receivers.json";
+const receiversPath = "./src/utils/receivers.json";
+const backupShiftPath = "./src/utils/backupShift.json";
 
-function writeJSON(receivers = []) {
+function writeReceivers(receivers = []) {
   const jsonString = JSON.stringify({ receivers: receivers });
-  fs.writeFileSync(path, jsonString);
+  fs.writeFileSync(receiversPath, jsonString);
 }
-function readJSON() {
-  if (fs.existsSync(path)) {
-    const rawdata = fs.readFileSync(path);
+function readReceivers() {
+  if (fs.existsSync(receiversPath)) {
+    const rawdata = fs.readFileSync(receiversPath);
     const receivers = JSON.parse(rawdata.toString());
     return receivers;
   }
-  writeJSON();
+  writeReceivers();
   return { receivers: [] };
 }
-export { writeJSON, readJSON };
+function writeBackupShift(backupShift = []) {
+  const jsonString = JSON.stringify({ backupShift: backupShift });
+  fs.writeFileSync(backupShiftPath, jsonString);
+}
+function readBackupShift() {
+  if (fs.existsSync(backupShiftPath)) {
+    const rawdata = fs.readFileSync(backupShiftPath);
+    const backupShift = JSON.parse(rawdata.toString());
+    return backupShift;
+  }
+  writeBackupShift();
+  return { backupShift: [] };
+}
+export { writeReceivers, readReceivers, writeBackupShift, readBackupShift };
