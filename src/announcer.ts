@@ -86,8 +86,8 @@ function getVariables() {
       getCurrentTime(),
       getNextSlotTime(),
     ];
-  } catch (e) {
-    console.log("getVariables() Error:", e);
+  } catch (err) {
+    console.log("getVariables() Error:", err);
   }
   return [];
 }
@@ -194,7 +194,6 @@ const announce = async () => {
 };
 
 const addReceiverId = (id: string, arg: Array<string>, name: string) => {
-  console.log("in", id, arg, name);
   const currentTime = getCurrentTime();
   const { receivers } = readReceivers();
   let i = receivers.map((e) => e.id).indexOf(id);
@@ -211,7 +210,6 @@ const addReceiverId = (id: string, arg: Array<string>, name: string) => {
       if (e.length !== 0) receivers[i].preferences.push(e.toUpperCase());
     });
   }
-  console.log("out", id, arg, name, receivers);
   writeReceivers(receivers);
   if (
     idx >= slots.length - 1 ||

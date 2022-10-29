@@ -116,22 +116,26 @@ const handleEvent = async (event) => {
           .substring(11, 16)}`;
         console.log(text.split("\n").toString());
         await replyText(event.replyToken, text);
-      } catch (e) {
-        console.log(e);
+      } catch (err) {
+        console.log(err);
         await replyText(event.replyToken, "!debug มีปัญหางับ มาเช็กด่วน ๆ");
       }
     } else if (event.message.text.substring(1, 6) === "quota") {
       commandMessage = "quota";
       const usage = await axios
         .get("https://api.line.me/v2/bot/message/quota/consumption", config)
-        .catch();
+        .catch((err) => {
+          console.log(err);
+        });
       const quota = await axios
         .get("https://api.line.me/v2/bot/message/quota/", config)
-        .catch();
+        .catch((err) => {
+          console.log(err);
+        });
       const text = `Usage: ${
-        usage.status === 200 ? usage.data.totalUsage : null
-      }/${quota.status === 200 ? quota.data.value : null}\nType: ${
-        quota.status === 200 ? quota.data.type : null
+        usage && usage.status === 200 ? usage.data.totalUsage : null
+      }/${quota && quota.status === 200 ? quota.data.value : null}\nType: ${
+        quota && quota.status === 200 ? quota.data.type : null
       }`;
       await replyText(event.replyToken, text);
     } else if (event.message.text.substring(1, 5) === "help") {

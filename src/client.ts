@@ -89,7 +89,9 @@ async function getName(id: string) {
       .then((summary) => {
         name = summary.data.groupName;
       })
-      .catch();
+      .catch((err) => {
+        console.log(err);
+      });
   }
   return name;
 }
