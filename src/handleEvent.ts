@@ -6,7 +6,7 @@ import {
   plusProcess,
   getVariables,
 } from "./announcer";
-import { replyText, getSender, getName } from "./client";
+import { replyText, getSender, getGroupName } from "./client";
 import { constants } from "./constants";
 const { PROCESS_FILE_NAME } = constants;
 const env = dotenv.config().parsed;
@@ -18,7 +18,6 @@ const config = {
   },
 };
 
-function initHandleEvent() {}
 function addReceiverReplyText(result: number | Array<number | string>) {
   return result === -1
     ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
@@ -40,14 +39,15 @@ const handleEvent = async (event) => {
       event.source.type === "group" ? event.source.groupId : null,
       event.source.userId
     );
-    const name = await getName(id);
+    const chatName =
+      event.source.type === "group" ? await getGroupName(id) : sender;
     let commandMessage = "Unknown Command";
     if (event.message.text.substring(1, 6) === "start") {
       commandMessage = event.message.text.substring(1);
-      const result = addReceiverId(
+      const result = await addReceiverId(
         id,
         event.message.text.split(" ").slice(1),
-        name
+        chatName
       );
       if (result !== null) {
         await replyText(event.replyToken, addReceiverReplyText(result));
@@ -71,7 +71,7 @@ const handleEvent = async (event) => {
           op === "-" ? true : false,
           sender,
           id,
-          name
+          chatName
         );
         commandMessage = op + " " + arg[1] + " " + arg[2];
         if (result !== null) {
@@ -152,10 +152,10 @@ const handleEvent = async (event) => {
       timeStamp.toLocaleString(),
       sender,
       "in",
-      id.charAt(0) === "U" ? "private chat" : name,
+      id.charAt(0) === "U" ? "private chat" : chatName,
       commandMessage
     );
   }
   return;
 };
-export { handleEvent, initHandleEvent };
+export { handleEvent };

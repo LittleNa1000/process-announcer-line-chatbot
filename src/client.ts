@@ -72,27 +72,37 @@ async function getSender(groupId: string, userId: string) {
   }
   return sender;
 }
-async function getName(id: string) {
-  let name = "Unknown Name";
-  if (id.charAt(0) === "U") {
-    await client
-      .getProfile(id)
-      .then((profile) => {
-        name = profile.displayName;
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  } else if (id.charAt(0) === "C") {
+async function getGroupName(id: string) {
+  let groupName = "Unknown Group";
+  await axios
+    .get(`https://api.line.me/v2/bot/group/${id}/summary`, config)
+    .then((summary) => {
+      groupName = summary.data.groupName;
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+  return groupName;
+}
+async function getReceiverCount(id: string) {
+  let count = 1;
+  if (id.charAt(0) === "C") {
     await axios
-      .get(`https://api.line.me/v2/bot/group/${id}/summary`, config)
+      .get(`https://api.line.me/v2/bot/group/${id}/members/count`, config)
       .then((summary) => {
-        name = summary.data.groupName;
+        count = summary.data.count;
       })
       .catch((err) => {
         console.log(err);
       });
   }
-  return name;
+  return count;
 }
-export { initClient, replyText, pushText, getSender, getName };
+export {
+  initClient,
+  replyText,
+  pushText,
+  getSender,
+  getGroupName,
+  getReceiverCount,
+};

@@ -12,7 +12,7 @@ const {
   MEMBER,
   DETAILS,
 } = constants;
-import { pushText } from "./client";
+import { pushText, getReceiverCount } from "./client";
 import {
   readReceivers,
   writeBackupShift,
@@ -193,12 +193,22 @@ const announce = async () => {
   }
 };
 
-const addReceiverId = (id: string, arg: Array<string>, name: string) => {
+const addReceiverId = async (
+  id: string,
+  arg: Array<string>,
+  chatName: string
+) => {
   const currentTime = getCurrentTime();
   const { receivers } = readReceivers();
   let i = receivers.map((e) => e.id).indexOf(id);
   if (i === -1) {
-    receivers.push({ id: id, name: name, preferences: [] });
+    const receiverCount = await getReceiverCount(id);
+    receivers.push({
+      id: id,
+      chatName: chatName,
+      receiverCount: receiverCount,
+      preferences: [],
+    });
     i = receivers.length - 1;
   } else if (arg === null) {
     return null;
@@ -243,7 +253,7 @@ const plusProcess = async (
   isNegative: boolean,
   sender: string,
   id: string,
-  name: string
+  chatName: string
 ) => {
   let [, duration, atSlot] = params;
   atSlot = Math.max(
@@ -267,7 +277,7 @@ const plusProcess = async (
   }
   writeBackupShift(shift);
   totalShift += duration;
-  const result = addReceiverId(id, null, name);
+  const result = await addReceiverId(id, null, chatName);
   const text = `🚨${duration < 0 ? "" : "+"}${duration} นาที ${
     totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
   } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\n⌛Slot #${atSlot} ${
