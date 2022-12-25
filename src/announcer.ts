@@ -1,24 +1,14 @@
-import { readProcess } from "./utils/readcsv";
+import { readProcess } from "./file-manager/readcsv";
 import { constants } from "./constants";
-const {
-  NUM,
-  BEGIN_TIME,
-  END_TIME,
-  DURATION,
-  OWNER,
-  NAME,
-  LOCATION,
-  LEADER,
-  MEMBER,
-  DETAILS,
-} = constants;
-import { pushText, getReceiverCount } from "./client";
+const { NUM, BEGIN_TIME, END_TIME, DURATION, OWNER, NAME, LOCATION, LEADER, MEMBER, DETAILS } =
+  constants;
+import { pushText, countGroupMembers } from "./client";
 import {
   readReceivers,
   writeBackupShift,
   writeReceivers,
   readBackupShift,
-} from "./utils/readwritejson";
+} from "./file-manager/readwritejson";
 let intervalId = null;
 let startDate = null;
 let slots: any;
@@ -30,17 +20,13 @@ let slotsBeginTime = undefined;
 let totalShift = 0;
 
 async function initAnnouncer() {
-  if (intervalId !== null) {
-    clearInterval(intervalId);
-  }
+  if (intervalId !== null) clearInterval(intervalId);
   slots = await readProcess();
   slotsBeginTime = new Array(slots.length + 10).fill(0);
   let dateDiff = 0;
   let temp = new Array(slots.length + 10).fill(0);
   for (let i = 1; i < slots.length; ++i) {
-    const slotTime = slots[i][BEGIN_TIME].split(":").map((e) =>
-      Number.parseInt(e)
-    );
+    const slotTime = slots[i][BEGIN_TIME].split(":").map((e) => Number.parseInt(e));
     temp[i] = slotTime[0] * 60 + slotTime[1];
     if (temp[i] < temp[i - 1]) {
       ++dateDiff;
@@ -49,7 +35,8 @@ async function initAnnouncer() {
   }
   shift = new Array(slots.length + 10).fill(0);
   const { backupShift } = readBackupShift();
-  for (let i = 1; i < Math.min(slots.length, backupShift.length); ++i) {
+  let minLength = Math.min(slots.length, backupShift.length);
+  for (let i = 1; i < minLength; ++i) {
     shift[i] += backupShift[i];
     slotsBeginTime[i] += backupShift[i];
   }
@@ -74,11 +61,18 @@ function resetIdx() {
   }
   return minIdx;
 }
+function getTotalReceivers(receivers: Array<any>) {
+  return receivers.reduce((totalReceivers: number, { receiverCount }) => {
+    return totalReceivers + (Number.isInteger(receiverCount) ? receiverCount : 0);
+  }, 0);
+}
 function getVariables() {
+  const { receivers } = readReceivers();
   try {
     return [
       intervalId,
-      readReceivers().receivers.length,
+      receivers.length,
+      getTotalReceivers(receivers),
       slots.length - 1,
       idx,
       totalShift,
@@ -94,11 +88,8 @@ function getVariables() {
 function getCurrentTime() {
   const currentTime = new Date();
   const currentDate = new Date(currentTime.toDateString());
-  const dateDiff =
-    (currentDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
-  return (
-    currentTime.getHours() * 60 + currentTime.getMinutes() + 60 * 24 * dateDiff
-  );
+  const dateDiff = (currentDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
+  return currentTime.getHours() * 60 + currentTime.getMinutes() + 60 * 24 * dateDiff;
 }
 function getNextSlotTime(index = idx) {
   if (index >= slots.length - 1) {
@@ -110,10 +101,7 @@ const announce = async () => {
   if (idx < slots.length - 1) {
     let nextSlotTime = getNextSlotTime();
     let currentTime = getCurrentTime();
-    while (
-      nextSlotTime === currentTime ||
-      (nextSlotTime <= currentTime && idx !== 0)
-    ) {
+    while (nextSlotTime === currentTime || (nextSlotTime <= currentTime && idx !== 0)) {
       if (bundle.length >= 5) {
         setTimeout(announce, 0.5 * 1000);
         break;
@@ -131,29 +119,21 @@ const announce = async () => {
       if (LOCATION !== -1) {
         slot[LOCATION] = slot[LOCATION].split("\n");
         slot[LOCATION] = `${slot[LOCATION][0]}${
-          slot[LOCATION].length > 1
-            ? " และอีก " + (slot[LOCATION].length - 1) + " ที่"
-            : ""
+          slot[LOCATION].length > 1 ? " และอีก " + (slot[LOCATION].length - 1) + " ที่" : ""
         }`;
       }
       if (MEMBER !== -1) {
         slot[MEMBER] = slot[MEMBER].split("\n");
         slot[MEMBER] = `${slot[MEMBER][0]}${
-          slot[MEMBER].length > 1
-            ? " กับอีก " + (slot[MEMBER].length - 1) + " คน"
-            : ""
+          slot[MEMBER].length > 1 ? " กับอีก " + (slot[MEMBER].length - 1) + " คน" : ""
         }`;
       }
       if (DETAILS !== -1) {
         slot[DETAILS] = slot[DETAILS].split("\n");
-        slot[DETAILS] = `${slot[DETAILS][0]}${
-          slot[DETAILS].length > 1 ? "..." : ""
-        }`;
+        slot[DETAILS] = `${slot[DETAILS][0]}${slot[DETAILS].length > 1 ? "..." : ""}`;
       }
       const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
-        BEGIN_TIME !== -1 &&
-        END_TIME !== -1 &&
-        slot[BEGIN_TIME] !== slot[END_TIME]
+        BEGIN_TIME !== -1 && END_TIME !== -1 && slot[BEGIN_TIME] !== slot[END_TIME]
           ? "⏱️ `" + slot[BEGIN_TIME] + " - " + slot[END_TIME] + "`"
           : BEGIN_TIME !== -1
           ? "🔔 `" + slot[BEGIN_TIME] + "`"
@@ -177,8 +157,7 @@ const announce = async () => {
           for (let i = 0; i < bundle.length; ++i) {
             isMatch = false;
             receiver.preferences.forEach((pref: string) => {
-              if (slotOwner[i].replace("COOR", "COOP").match(pref))
-                isMatch = true;
+              if (slotOwner[i].replace("COOR", "COOP").match(pref)) isMatch = true;
             });
             if (isMatch) prefBundle.push(bundle[i]);
           }
@@ -193,16 +172,12 @@ const announce = async () => {
   }
 };
 
-const addReceiverId = async (
-  id: string,
-  arg: Array<string>,
-  chatName: string
-) => {
+const addReceiverId = async (id: string, arg: Array<string>, chatName: string) => {
   const currentTime = getCurrentTime();
   const { receivers } = readReceivers();
   let i = receivers.map((e) => e.id).indexOf(id);
   if (i === -1) {
-    const receiverCount = await getReceiverCount(id);
+    const receiverCount = id.charAt(0) === "C" ? await countGroupMembers(id) : 1;
     receivers.push({
       id: id,
       chatName: chatName,
@@ -221,18 +196,13 @@ const addReceiverId = async (
     });
   }
   writeReceivers(receivers);
-  if (
-    idx >= slots.length - 1 ||
-    (idx === 0 && getNextSlotTime(slots.length - 2) < currentTime)
-  ) {
+  if (idx >= slots.length - 1 || (idx === 0 && getNextSlotTime(slots.length - 2) < currentTime)) {
     return -1;
   }
   return [
     idx + 1,
     `${slots[idx + 1][BEGIN_TIME]}${
-      shift[idx + 1] !== 0
-        ? `(${shift[idx + 1] >= 0 ? "+" : ""}${shift[idx + 1]})`
-        : ""
+      shift[idx + 1] !== 0 ? `(${shift[idx + 1] >= 0 ? "+" : ""}${shift[idx + 1]})` : ""
     }`,
   ];
 };
@@ -256,10 +226,7 @@ const plusProcess = async (
   chatName: string
 ) => {
   let [, duration, atSlot] = params;
-  atSlot = Math.max(
-    1,
-    atSlot === "now" ? idx : atSlot === "next" ? idx + 1 : parseInt(atSlot)
-  );
+  atSlot = Math.max(1, atSlot === "now" ? idx : atSlot === "next" ? idx + 1 : parseInt(atSlot));
   duration = isNegative ? -parseInt(duration) : parseInt(duration);
   if (
     !(
@@ -281,13 +248,9 @@ const plusProcess = async (
   const text = `🚨${duration < 0 ? "" : "+"}${duration} นาที ${
     totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
   } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\n⌛Slot #${atSlot} ${
-    atSlot === idx
-      ? `จบ ${slots[atSlot][END_TIME]}`
-      : `เริ่ม ${slots[atSlot][BEGIN_TIME]} `
+    atSlot === idx ? `จบ ${slots[atSlot][END_TIME]}` : `เริ่ม ${slots[atSlot][BEGIN_TIME]} `
   } ${
-    shift[atSlot] !== 0
-      ? `(${shift[atSlot] >= 0 ? "+" : ""}${shift[atSlot]})`
-      : ""
+    shift[atSlot] !== 0 ? `(${shift[atSlot] >= 0 ? "+" : ""}${shift[atSlot]})` : ""
   }\nสั่งโดย ${sender}`;
   const { receivers } = readReceivers();
   receivers.forEach(async (e) => {
@@ -303,4 +266,5 @@ export {
   removeReceiverId,
   plusProcess,
   getVariables,
+  getTotalReceivers,
 };

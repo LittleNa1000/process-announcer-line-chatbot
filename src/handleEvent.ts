@@ -5,9 +5,11 @@ import {
   removeReceiverId,
   plusProcess,
   getVariables,
+  getTotalReceivers,
 } from "./announcer";
 import { replyText, getSender, getGroupName } from "./client";
 import { constants } from "./constants";
+import { readReceivers } from "./file-manager/readwritejson";
 const { PROCESS_FILE_NAME } = constants;
 const env = dotenv.config().parsed;
 const config = {
@@ -31,24 +33,16 @@ const handleEvent = async (event) => {
     event.message.text.replaceAll("!", "").trim().length > 0
   ) {
     const timeStamp = new Date(event.timestamp);
-    const id =
-      event.source.type === "group"
-        ? event.source.groupId
-        : event.source.userId;
+    const id = event.source.type === "group" ? event.source.groupId : event.source.userId;
     const sender = await getSender(
       event.source.type === "group" ? event.source.groupId : null,
       event.source.userId
     );
-    const chatName =
-      event.source.type === "group" ? await getGroupName(id) : sender;
+    const chatName = event.source.type === "group" ? await getGroupName(id) : sender;
     let commandMessage = "Unknown Command";
     if (event.message.text.substring(1, 6) === "start") {
       commandMessage = event.message.text.substring(1);
-      const result = await addReceiverId(
-        id,
-        event.message.text.split(" ").slice(1),
-        chatName
-      );
+      const result = await addReceiverId(id, event.message.text.split(" ").slice(1), chatName);
       if (result !== null) {
         await replyText(event.replyToken, addReceiverReplyText(result));
       }
@@ -66,13 +60,7 @@ const handleEvent = async (event) => {
       try {
         const op = event.message.text.substring(1, 2);
         const arg = event.message.text.split(" ");
-        const result = await plusProcess(
-          arg,
-          op === "-" ? true : false,
-          sender,
-          id,
-          chatName
-        );
+        const result = await plusProcess(arg, op === "-" ? true : false, sender, id, chatName);
         commandMessage = op + " " + arg[1] + " " + arg[2];
         if (result !== null) {
           await replyText(event.replyToken, addReceiverReplyText(result));
@@ -95,7 +83,8 @@ const handleEvent = async (event) => {
       try {
         const [
           intervalId,
-          receivers,
+          totalChats,
+          totalReceivers,
           totalSlots,
           idx,
           totalShift,
@@ -109,11 +98,9 @@ const handleEvent = async (event) => {
         currentDate.setMinutes(Math.min(currentTime, 23 * 60 + 59));
         const text = `Interval: ${
           intervalId ? `Running (${intervalId})` : "Rest"
-        }\nReceivers: ${receivers}\nidx: ${idx}/${totalSlots}\n+-Process: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${currentDate
+        }\nTotal Chat Rooms: ${totalChats}\nTotal Receivers: ${totalReceivers}\nidx: ${idx}/${totalSlots}\n+-Total: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${currentDate
           .toISOString()
-          .substring(11, 16)}\nNext Slot: ${nextSlotDate
-          .toISOString()
-          .substring(11, 16)}`;
+          .substring(11, 16)}\nNext Slot: ${nextSlotDate.toISOString().substring(11, 16)}`;
         console.log(text.split("\n").toString());
         await replyText(event.replyToken, text);
       } catch (err) {
@@ -122,21 +109,31 @@ const handleEvent = async (event) => {
       }
     } else if (event.message.text.substring(1, 6) === "quota") {
       commandMessage = "quota";
-      const usage = await axios
+      let usage = 0,
+        quota = 1,
+        type = "Unknown";
+      await axios
         .get("https://api.line.me/v2/bot/message/quota/consumption", config)
+        .then((res) => {
+          usage = res.data.totalUsage;
+        })
         .catch((err) => {
           console.log(err);
         });
-      const quota = await axios
+      await axios
         .get("https://api.line.me/v2/bot/message/quota/", config)
+        .then((res) => {
+          quota = res.data.value;
+          type = res.data.type;
+        })
         .catch((err) => {
           console.log(err);
         });
-      const text = `Usage: ${
-        usage && usage.status === 200 ? usage.data.totalUsage : null
-      }/${quota && quota.status === 200 ? quota.data.value : null}\nType: ${
-        quota && quota.status === 200 ? quota.data.type : null
-      }`;
+      const { receivers } = readReceivers();
+      const totalReceivers = getTotalReceivers(receivers);
+      const text = `Usage: ${usage}/${quota} (${
+        (usage * 100) / quota
+      }%)\nTotal Receivers: ${totalReceivers}\nType: ${type}`;
       await replyText(event.replyToken, text);
     } else if (event.message.text.substring(1, 5) === "help") {
       commandMessage = "help";

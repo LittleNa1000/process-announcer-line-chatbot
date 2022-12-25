@@ -1,6 +1,6 @@
 import * as fs from "fs";
-const receiversPath = "./src/utils/receivers.json";
-const backupShiftPath = "./src/utils/backupShift.json";
+const receiversPath = "./storage/receivers.json";
+const backupShiftPath = "./storage/backupShift.json";
 
 function writeReceivers(receivers = []) {
   const jsonString = JSON.stringify({ receivers: receivers });

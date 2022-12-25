@@ -12,7 +12,7 @@ let client = null;
 function initClient(c) {
   client = c;
 }
-async function replyText(replyToken, text: string) {
+async function replyText(replyToken: string, text: string) {
   if (text.length === 0) return;
   await client
     .replyMessage(replyToken, {
@@ -84,25 +84,16 @@ async function getGroupName(id: string) {
     });
   return groupName;
 }
-async function getReceiverCount(id: string) {
-  let count = 1;
-  if (id.charAt(0) === "C") {
-    await axios
-      .get(`https://api.line.me/v2/bot/group/${id}/members/count`, config)
-      .then((summary) => {
-        count = summary.data.count;
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }
+async function countGroupMembers(id: string) {
+  let count = 0;
+  await axios
+    .get(`https://api.line.me/v2/bot/group/${id}/members/count`, config)
+    .then((summary) => {
+      count = summary.data.count;
+    })
+    .catch((err) => {
+      console.log(err);
+    });
   return count;
 }
-export {
-  initClient,
-  replyText,
-  pushText,
-  getSender,
-  getGroupName,
-  getReceiverCount,
-};
+export { initClient, replyText, pushText, getSender, getGroupName, countGroupMembers };

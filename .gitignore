@@ -107,5 +107,4 @@ ngrok.exe
 .vscode
 process-files/*
 bfg-1.14.0.jar
-src/utils/receivers.json
-src/utils/backupShift.json
+storage/*

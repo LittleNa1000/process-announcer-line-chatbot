@@ -1,36 +1,28 @@
 import * as line from "@line/bot-sdk";
 import * as express from "express";
 import * as dotenv from "dotenv";
-import { handleEvent } from "./src/handleEvent";
-import { initAnnouncer } from "./src/announcer";
-import { initClient } from "./src/client";
-import { constants } from "./src/constants";
+import {handleEvent} from "./src/handleEvent";
+import {initAnnouncer} from "./src/announcer";
+import {initClient} from "./src/client";
+import {constants} from "./src/constants";
 import * as readline from "readline";
 import axios from "axios";
 const readlineInterface = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-const { PROCESS_FILE_NAME } = constants;
+const {PROCESS_FILE_NAME} = constants;
 const env = dotenv.config().parsed;
 const app = express();
 
 const lineConfig = {
-  channelAccessToken:
-    env!.NODE_ENV === "development"
-      ? env!.ACCESS_TOKEN_DEMO
-      : env!.ACCESS_TOKEN,
-  channelSecret:
-    env!.NODE_ENV === "development"
-      ? env!.SECRET_TOKEN_DEMO
-      : env!.SECRET_TOKEN,
+  channelAccessToken: env!.NODE_ENV === "development" ? env!.ACCESS_TOKEN_DEMO : env!.ACCESS_TOKEN,
+  channelSecret: env!.NODE_ENV === "development" ? env!.SECRET_TOKEN_DEMO : env!.SECRET_TOKEN,
 };
 const config = {
   headers: {
     Authorization: `Bearer ${
-      env!.NODE_ENV === "development"
-        ? env!.ACCESS_TOKEN_DEMO
-        : env!.ACCESS_TOKEN
+      env!.NODE_ENV === "development" ? env!.ACCESS_TOKEN_DEMO : env!.ACCESS_TOKEN
     }`,
   },
 };
@@ -66,48 +58,40 @@ app.listen(env!.PORT, async () => {
   initClient(client);
   await initAnnouncer();
   console.log(
-    `process: ${PROCESS_FILE_NAME}, NODE_ENV: ${
-      env!.NODE_ENV
-    }, Allow push messages: ${env!.ALLOW_PUSH_MESSAGE}`
+    `process: ${PROCESS_FILE_NAME}, NODE_ENV: ${env!.NODE_ENV}, Allow push messages: ${
+      env!.ALLOW_PUSH_MESSAGE
+    }`
   );
-  readlineInterface.question(
-    "Set webhook endpoint URL (optional): ",
-    async function (webhookURL) {
-      if (validURL(webhookURL))
-        await axios
-          .put(
-            `https://api.line.me/v2/bot/channel/webhook/endpoint`,
-            { endpoint: webhookURL + "/webhook" },
-            config
-          )
-          .then((res) => {
-            console.log(
-              `Set webhook endpoint URL: ${
-                res && res.status == 200 ? "Success" : "Failed"
-              }`
-            );
-          })
-          .catch((err) => {
-            console.log(err);
-          });
+  readlineInterface.question("Set webhook endpoint URL (optional): ", async function (webhookURL) {
+    if (validURL(webhookURL))
       await axios
-        .post(`https://api.line.me/v2/bot/channel/webhook/test`, {}, config)
+        .put(
+          `https://api.line.me/v2/bot/channel/webhook/endpoint`,
+          {endpoint: webhookURL + "/webhook"},
+          config
+        )
         .then((res) => {
           console.log(
-            `Test webhook endpoint URL: ${
-              res &&
-              res.status == 200 &&
-              res.data.success &&
-              res.data.statusCode == 200
-                ? "Success"
-                : "Failed"
-            }`
+            `Set webhook endpoint URL: ${res && res.status == 200 ? "Success" : "Failed"}`
           );
         })
         .catch((err) => {
           console.log(err);
         });
-      readlineInterface.close();
-    }
-  );
+    await axios
+      .post(`https://api.line.me/v2/bot/channel/webhook/test`, {}, config)
+      .then((res) => {
+        console.log(
+          `Test webhook endpoint URL: ${
+            res && res.status == 200 && res.data.success && res.data.statusCode == 200
+              ? "Success"
+              : "Failed"
+          }`
+        );
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    readlineInterface.close();
+  });
 });
