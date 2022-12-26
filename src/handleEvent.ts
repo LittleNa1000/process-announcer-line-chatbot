@@ -75,7 +75,6 @@ const handleEvent = async (event) => {
       );
     } else if (event.message.text.substring(1, 6) === "debug") {
       commandMessage = "debug";
-      const variables = getVariables();
       try {
         const [
           intervalId,
@@ -87,7 +86,7 @@ const handleEvent = async (event) => {
           nextSlotShift,
           currentTime,
           nextSlotTime,
-        ] = variables;
+        ] = getVariables();
         const nextSlotDate = new Date(0);
         nextSlotDate.setMinutes(Math.min(nextSlotTime, 23 * 60 + 59));
         const currentDate = new Date(0);
@@ -144,10 +143,11 @@ const handleEvent = async (event) => {
     console.log(
       timeStamp.toLocaleString(),
       sender,
-      "in",
-      id.charAt(0) === "U" ? "private chat" : chatName,
+      id.charAt(0) === "U" ? "(dm)" : chatName,
       commandMessage
     );
+  } else if (event.type === "postback") {
+    console.log(event);
   }
   return;
 };

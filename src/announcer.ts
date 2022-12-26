@@ -1,15 +1,18 @@
 import { readProcess } from "./file-manager/readcsv";
 import { constants } from "./constants";
-const { NUM, BEGIN_TIME, END_TIME, DURATION, OWNER, NAME, LOCATION, LEADER, MEMBER, DETAILS } =
-  constants;
-import { pushText, countGroupMembers } from "./client";
+const { BEGIN_TIME, END_TIME, OWNER, PUSH_MESSAGE_TYPE } = constants;
+import { pushText, countGroupMembers, pushFlex } from "./client";
 import {
   readReceivers,
   writeBackupShift,
   writeReceivers,
   readBackupShift,
 } from "./file-manager/readwritejson";
-import { generatePlusProcessText, generateSlotInfoText } from "./templates";
+import {
+  generatePlusProcessFlex,
+  generatePlusProcessText,
+  generateSlotInfoText,
+} from "./templates";
 let intervalId = null;
 let startDate = null;
 let slots: any;
@@ -203,9 +206,8 @@ const plusProcess = async (
       atSlot < slots.length &&
       duration !== 0
     )
-  ) {
+  )
     throw "wrong argument";
-  }
   for (let i = atSlot; i < slots.length; ++i) {
     shift[i] += duration;
     slotsBeginTime[i] += duration;
@@ -213,7 +215,8 @@ const plusProcess = async (
   writeBackupShift(shift);
   totalShift += duration;
   const result = await addReceiverId(id, null, chatName);
-  const text = generatePlusProcessText(
+  const { receivers } = readReceivers();
+  const props = [
     duration,
     totalShift,
     atSlot,
@@ -221,12 +224,19 @@ const plusProcess = async (
     slots[atSlot][BEGIN_TIME],
     slots[atSlot][END_TIME],
     shift[atSlot],
-    sender
-  );
-  const { receivers } = readReceivers();
-  receivers.forEach(async (e) => {
-    await pushText(e.id, text);
-  });
+    sender,
+  ];
+  if (PUSH_MESSAGE_TYPE == "flex") {
+    const flex = generatePlusProcessFlex(props);
+    receivers.forEach(async (e) => {
+      await pushFlex(e.id, flex);
+    });
+  } else if (PUSH_MESSAGE_TYPE == "text") {
+    const text = generatePlusProcessText(props);
+    receivers.forEach(async (e) => {
+      await pushText(e.id, text);
+    });
+  }
   setTimeout(announce, 0.5 * 1000);
   return result;
 };

@@ -11,7 +11,7 @@ const readlineInterface = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-const { PROCESS_FILE_NAME } = constants;
+const { PROCESS_FILE_NAME, ALLOW_PUSH_MESSAGE } = constants;
 const env = dotenv.config().parsed;
 const app = express();
 
@@ -36,7 +36,6 @@ function validURL(str: string) {
 app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
   try {
     const events = req.body.events;
-    console.log(req.body.events);
     return events.length > 0
       ? await events.map((item) => handleEvent(item))
       : res.status(200).send("OK");
@@ -51,9 +50,9 @@ app.listen(env!.PORT, async () => {
   initClient(client);
   await initAnnouncer();
   console.log(
-    `process: ${PROCESS_FILE_NAME}, NODE_ENV: ${env!.NODE_ENV}, Allow push messages: ${
-      env!.ALLOW_PUSH_MESSAGE
-    }`
+    `process: ${PROCESS_FILE_NAME}, NODE_ENV: ${
+      env!.NODE_ENV
+    }, Allow push messages: ${ALLOW_PUSH_MESSAGE}`
   );
   readlineInterface.question("Set webhook endpoint URL (optional): ", async function (webhookURL) {
     if (validURL(webhookURL)) {

@@ -1,46 +1,40 @@
-import axios from "axios";
 import * as dotenv from "dotenv";
+import { constants } from "./constants";
+const { ALLOW_PUSH_MESSAGE } = constants;
 const env = dotenv.config().parsed;
-const config = {
-  headers: {
-    Authorization: `Bearer ${
-      env.NODE_ENV === "development" ? env.ACCESS_TOKEN_DEMO : env.ACCESS_TOKEN
-    }`,
-  },
-};
 let client = null;
 function initClient(c) {
   client = c;
 }
+async function pushFlex(id: string, bubble: object) {
+  let messages = [];
+  messages.push({ type: "flex", altText: "แจ้งบวก/ลบโปรเซส", contents: bubble });
+  if (!ALLOW_PUSH_MESSAGE) {
+    console.log("pushFlex", id, messages);
+    return;
+  }
+  if (messages.length === 0) return;
+  await client.pushMessage(id, messages).catch((err) => {
+    console.log(err);
+  });
+}
 async function replyText(replyToken: string, text: string) {
   if (text.length === 0) return;
-  await client
-    .replyMessage(replyToken, {
-      type: "text",
-      text: text,
-    })
-    .catch((err) => {
-      console.log(err);
-    });
+  await client.replyMessage(replyToken, { type: "text", text: text }).catch((err) => {
+    console.log(err);
+  });
 }
+
 async function pushText(id: string, bundle: string | Array<string>) {
   let messages = [];
   if (Array.isArray(bundle)) {
     bundle.forEach((element: string) => {
-      if (element.length !== 0)
-        messages.push({
-          type: "text",
-          text: element,
-        });
+      if (element.length !== 0) messages.push({ type: "text", text: element });
     });
-  } else {
-    if (bundle.length !== 0)
-      messages.push({
-        type: "text",
-        text: bundle,
-      });
+  } else if (bundle.length !== 0) {
+    messages.push({ type: "text", text: bundle });
   }
-  if (env.ALLOW_PUSH_MESSAGE === "false") {
+  if (!ALLOW_PUSH_MESSAGE) {
     console.log("pushText", id, messages);
     return;
   }
@@ -74,10 +68,10 @@ async function getSender(groupId: string, userId: string) {
 }
 async function getGroupName(id: string) {
   let groupName = "Unknown Group";
-  await axios
-    .get(`https://api.line.me/v2/bot/group/${id}/summary`, config)
-    .then((summary) => {
-      groupName = summary.data.groupName;
+  await client
+    .getGroupSummary(id)
+    .then((res) => {
+      groupName = res.groupName;
     })
     .catch((err) => {
       console.log(err);
@@ -86,10 +80,10 @@ async function getGroupName(id: string) {
 }
 async function countGroupMembers(id: string) {
   let count = 0;
-  await axios
-    .get(`https://api.line.me/v2/bot/group/${id}/members/count`, config)
-    .then((summary) => {
-      count = summary.data.count;
+  await client
+    .getGroupMembersCount(id)
+    .then((res) => {
+      count = res.count;
     })
     .catch((err) => {
       console.log(err);
@@ -117,4 +111,5 @@ export {
   countGroupMembers,
   setWebhookEndpointUrl,
   testWebhookEndpoint,
+  pushFlex,
 };

@@ -9,5 +9,7 @@ export const constants = {
   LEADER: 7,
   MEMBER: 8,
   DETAILS: 9,
-  PROCESS_FILE_NAME: "process-test.csv",
+  PROCESS_FILE_NAME: "30-10-65-onsite.csv",
+  ALLOW_PUSH_MESSAGE: true,
+  PUSH_MESSAGE_TYPE: "flex",
 };
