@@ -1,30 +1,23 @@
 import * as line from "@line/bot-sdk";
 import * as express from "express";
 import * as dotenv from "dotenv";
-import {handleEvent} from "./src/handleEvent";
-import {initAnnouncer} from "./src/announcer";
-import {initClient} from "./src/client";
-import {constants} from "./src/constants";
+import { handleEvent } from "./src/handleEvent";
+import { initAnnouncer } from "./src/announcer";
+import { initClient } from "./src/client";
+import { constants } from "./src/constants";
+import { setWebhookEndpointUrl, testWebhookEndpoint } from "./src/client";
 import * as readline from "readline";
-import axios from "axios";
 const readlineInterface = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-const {PROCESS_FILE_NAME} = constants;
+const { PROCESS_FILE_NAME } = constants;
 const env = dotenv.config().parsed;
 const app = express();
 
 const lineConfig = {
   channelAccessToken: env!.NODE_ENV === "development" ? env!.ACCESS_TOKEN_DEMO : env!.ACCESS_TOKEN,
   channelSecret: env!.NODE_ENV === "development" ? env!.SECRET_TOKEN_DEMO : env!.SECRET_TOKEN,
-};
-const config = {
-  headers: {
-    Authorization: `Bearer ${
-      env!.NODE_ENV === "development" ? env!.ACCESS_TOKEN_DEMO : env!.ACCESS_TOKEN
-    }`,
-  },
 };
 const client = new line.Client(lineConfig);
 function validURL(str: string) {
@@ -63,35 +56,16 @@ app.listen(env!.PORT, async () => {
     }`
   );
   readlineInterface.question("Set webhook endpoint URL (optional): ", async function (webhookURL) {
-    if (validURL(webhookURL))
-      await axios
-        .put(
-          `https://api.line.me/v2/bot/channel/webhook/endpoint`,
-          {endpoint: webhookURL + "/webhook"},
-          config
-        )
-        .then((res) => {
-          console.log(
-            `Set webhook endpoint URL: ${res && res.status == 200 ? "Success" : "Failed"}`
-          );
-        })
-        .catch((err) => {
-          console.log(err);
-        });
-    await axios
-      .post(`https://api.line.me/v2/bot/channel/webhook/test`, {}, config)
-      .then((res) => {
-        console.log(
-          `Test webhook endpoint URL: ${
-            res && res.status == 200 && res.data.success && res.data.statusCode == 200
-              ? "Success"
-              : "Failed"
-          }`
-        );
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    if (validURL(webhookURL)) {
+      console.log(
+        `Set webhook endpoint URL: ${
+          (await setWebhookEndpointUrl(webhookURL)) ? "Success" : "Failed"
+        }`
+      );
+    }
+    console.log(
+      `Test webhook endpoint URL: ${(await testWebhookEndpoint()) ? "Success" : "Failed"}`
+    );
     readlineInterface.close();
   });
 });

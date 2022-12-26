@@ -96,4 +96,25 @@ async function countGroupMembers(id: string) {
     });
   return count;
 }
-export { initClient, replyText, pushText, getSender, getGroupName, countGroupMembers };
+async function setWebhookEndpointUrl(endpoint: string) {
+  const res = await client.setWebhookEndpointUrl(endpoint + "/webhook").catch((err) => {
+    console.log(err);
+  });
+  return Boolean(res);
+}
+async function testWebhookEndpoint(endpoint?: string) {
+  const res = await client.testWebhookEndpoint().catch((err) => {
+    console.log(err);
+  });
+  return res && res.success && res.statusCode == 200;
+}
+export {
+  initClient,
+  replyText,
+  pushText,
+  getSender,
+  getGroupName,
+  countGroupMembers,
+  setWebhookEndpointUrl,
+  testWebhookEndpoint,
+};

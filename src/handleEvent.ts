@@ -10,6 +10,7 @@ import {
 import { replyText, getSender, getGroupName } from "./client";
 import { constants } from "./constants";
 import { readReceivers } from "./file-manager/readwritejson";
+import { addReceiverReplyText } from "./templates";
 const { PROCESS_FILE_NAME } = constants;
 const env = dotenv.config().parsed;
 const config = {
@@ -20,11 +21,6 @@ const config = {
   },
 };
 
-function addReceiverReplyText(result: number | Array<number | string>) {
-  return result === -1
-    ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
-    : `เดี๋ยวจะเริ่มประกาศแล้วนะงับ😉\nSlot ถัดไป #${result[0]} เริ่ม ${result[1]} น้า`;
-}
 const handleEvent = async (event) => {
   if (
     event.type == "message" &&

@@ -9,11 +9,10 @@ import {
   writeReceivers,
   readBackupShift,
 } from "./file-manager/readwritejson";
+import { generatePlusProcessText, generateSlotInfoText } from "./templates";
 let intervalId = null;
 let startDate = null;
 let slots: any;
-let bundle = [];
-let slotOwner = [];
 let idx = 0;
 let shift = undefined;
 let slotsBeginTime = undefined;
@@ -62,8 +61,8 @@ function resetIdx() {
   return minIdx;
 }
 function getTotalReceivers(receivers: Array<any>) {
-  return receivers.reduce((totalReceivers: number, { receiverCount }) => {
-    return totalReceivers + (Number.isInteger(receiverCount) ? receiverCount : 0);
+  return receivers.reduce((totalReceivers: number, { members }) => {
+    return totalReceivers + (Number.isInteger(members) ? members : 0);
   }, 0);
 }
 function getVariables() {
@@ -99,6 +98,8 @@ function getNextSlotTime(index = idx) {
 }
 const announce = async () => {
   if (idx < slots.length - 1) {
+    let bundle = [];
+    let slotOwner = [];
     let nextSlotTime = getNextSlotTime();
     let currentTime = getCurrentTime();
     while (nextSlotTime === currentTime || (nextSlotTime <= currentTime && idx !== 0)) {
@@ -110,40 +111,7 @@ const announce = async () => {
       nextSlotTime = getNextSlotTime();
       currentTime = getCurrentTime();
       let slot = [...slots[idx]];
-      if (BEGIN_TIME !== -1 && shift[idx] !== 0) {
-        slot[BEGIN_TIME] += ` (${shift[idx] >= 0 ? "+" : ""}${shift[idx]})`;
-      }
-      if (END_TIME !== -1 && shift[idx] !== 0) {
-        slot[END_TIME] += ` (${shift[idx] >= 0 ? "+" : ""}${shift[idx]})`;
-      }
-      if (LOCATION !== -1) {
-        slot[LOCATION] = slot[LOCATION].split("\n");
-        slot[LOCATION] = `${slot[LOCATION][0]}${
-          slot[LOCATION].length > 1 ? " และอีก " + (slot[LOCATION].length - 1) + " ที่" : ""
-        }`;
-      }
-      if (MEMBER !== -1) {
-        slot[MEMBER] = slot[MEMBER].split("\n");
-        slot[MEMBER] = `${slot[MEMBER][0]}${
-          slot[MEMBER].length > 1 ? " กับอีก " + (slot[MEMBER].length - 1) + " คน" : ""
-        }`;
-      }
-      if (DETAILS !== -1) {
-        slot[DETAILS] = slot[DETAILS].split("\n");
-        slot[DETAILS] = `${slot[DETAILS][0]}${slot[DETAILS].length > 1 ? "..." : ""}`;
-      }
-      const text = `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
-        BEGIN_TIME !== -1 && END_TIME !== -1 && slot[BEGIN_TIME] !== slot[END_TIME]
-          ? "⏱️ `" + slot[BEGIN_TIME] + " - " + slot[END_TIME] + "`"
-          : BEGIN_TIME !== -1
-          ? "🔔 `" + slot[BEGIN_TIME] + "`"
-          : ""
-      }\n${OWNER !== -1 ? slot[OWNER] : ""} ${NAME !== -1 ? slot[NAME] : ""}\n${
-        LEADER !== -1 ? "ผต. " + slot[LEADER] : ""
-      }\n${LOCATION !== -1 ? "📌 " + slot[LOCATION] : ""}\n${
-        MEMBER !== -1 ? "🏃 " + slot[MEMBER] : ""
-      }`;
-      bundle.push(text);
+      bundle.push(generateSlotInfoText(slot, shift[idx]));
       slotOwner.push(OWNER !== -1 ? slot[OWNER].toUpperCase() : "");
     }
     if (bundle.length > 0) {
@@ -177,11 +145,11 @@ const addReceiverId = async (id: string, arg: Array<string>, chatName: string) =
   const { receivers } = readReceivers();
   let i = receivers.map((e) => e.id).indexOf(id);
   if (i === -1) {
-    const receiverCount = id.charAt(0) === "C" ? await countGroupMembers(id) : 1;
+    const members = id.charAt(0) === "C" ? await countGroupMembers(id) : 1;
     receivers.push({
       id: id,
       chatName: chatName,
-      receiverCount: receiverCount,
+      members: members,
       preferences: [],
     });
     i = receivers.length - 1;
@@ -245,13 +213,16 @@ const plusProcess = async (
   writeBackupShift(shift);
   totalShift += duration;
   const result = await addReceiverId(id, null, chatName);
-  const text = `🚨${duration < 0 ? "" : "+"}${duration} นาที ${
-    totalShift === 0 ? "*Setzero*" : `รวม ${totalShift} นาที`
-  } ตั้งแต่ Slot #${atSlot} น้างับ 🚨\n⌛Slot #${atSlot} ${
-    atSlot === idx ? `จบ ${slots[atSlot][END_TIME]}` : `เริ่ม ${slots[atSlot][BEGIN_TIME]} `
-  } ${
-    shift[atSlot] !== 0 ? `(${shift[atSlot] >= 0 ? "+" : ""}${shift[atSlot]})` : ""
-  }\nสั่งโดย ${sender}`;
+  const text = generatePlusProcessText(
+    duration,
+    totalShift,
+    atSlot,
+    idx,
+    slots[atSlot][BEGIN_TIME],
+    slots[atSlot][END_TIME],
+    shift[atSlot],
+    sender
+  );
   const { receivers } = readReceivers();
   receivers.forEach(async (e) => {
     await pushText(e.id, text);
