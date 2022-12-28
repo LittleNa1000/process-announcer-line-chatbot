@@ -7,10 +7,10 @@ import {
   getVariables,
   getTotalReceivers,
 } from "./announcer";
-import { replyText, getSender, getGroupName } from "./client";
+import { replyText, getSender, getGroupName, replyFlex } from "./client";
 import { constants } from "./constants";
 import { readReceivers } from "./file-manager/readwritejson";
-import { addReceiverReplyText } from "./templates";
+import { addReceiverReplyText, helpFlex } from "./templates";
 const { PROCESS_FILE_NAME } = constants;
 const env = dotenv.config().parsed;
 const config = {
@@ -132,10 +132,7 @@ const handleEvent = async (event) => {
       await replyText(event.replyToken, text);
     } else if (event.message.text.substring(1, 5) === "help") {
       commandMessage = "help";
-      await replyText(
-        event.replyToken,
-        "พิมพ์ !start เพื่อเริ่มการใช้งาน\nหรือ !stop เพื่อหยุดการใช้งาน\nส่วนคู่มือแบบเต็ม ๆ ก็อันนี้เลยยย https://docs.google.com/document/d/1rs-aK5OV9isvC4HrIy0Rb4q3cD8NZsXymxfuG3JBWhs/edit?usp=sharing"
-      );
+      await replyFlex(event.replyToken, helpFlex());
     } else {
       await replyText(event.replyToken, "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢");
       return;
@@ -143,7 +140,8 @@ const handleEvent = async (event) => {
     console.log(
       timeStamp.toLocaleString(),
       sender,
-      id.charAt(0) === "U" ? "(dm)" : chatName,
+      event.source.userId,
+      id.charAt(0) === "U" ? "(dm)" : "in " + chatName,
       commandMessage
     );
   } else if (event.type === "postback") {

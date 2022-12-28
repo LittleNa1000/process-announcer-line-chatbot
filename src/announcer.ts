@@ -228,8 +228,11 @@ const plusProcess = async (
   ];
   if (PUSH_MESSAGE_TYPE == "flex") {
     const flex = generatePlusProcessFlex(props);
+    const altText = `${
+      duration < 0 ? "" : "+"
+    }${duration} นาที ตั้งแต่ Slot #${atSlot} รวม ${totalShift} นาที สั่งโดย ${sender}`;
     receivers.forEach(async (e) => {
-      await pushFlex(e.id, flex);
+      await pushFlex(e.id, flex, altText);
     });
   } else if (PUSH_MESSAGE_TYPE == "text") {
     const text = generatePlusProcessText(props);

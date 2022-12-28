@@ -6,9 +6,9 @@ let client = null;
 function initClient(c) {
   client = c;
 }
-async function pushFlex(id: string, bubble: object) {
+async function pushFlex(id: string, bubble: object, altText: string) {
   let messages = [];
-  messages.push({ type: "flex", altText: "แจ้งบวก/ลบโปรเซส", contents: bubble });
+  messages.push({ type: "flex", altText: altText, contents: bubble });
   if (!ALLOW_PUSH_MESSAGE) {
     console.log("pushFlex", id, messages);
     return;
@@ -17,6 +17,19 @@ async function pushFlex(id: string, bubble: object) {
   await client.pushMessage(id, messages).catch((err) => {
     console.log(err);
   });
+}
+async function replyFlex(replyToken: string, carousel: object) {
+  if (!carousel) return;
+  await client
+    .replyMessage(replyToken, {
+      type: "flex",
+      altText:
+        "พิมพ์ !start หรือ !start ตามด้วยชื่อฝ่าย (เช่น !start plan coop) เพื่อเริ่มแจ้ง Slot",
+      contents: carousel,
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 }
 async function replyText(replyToken: string, text: string) {
   if (text.length === 0) return;
@@ -112,4 +125,5 @@ export {
   setWebhookEndpointUrl,
   testWebhookEndpoint,
   pushFlex,
+  replyFlex,
 };
