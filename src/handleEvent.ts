@@ -1,8 +1,8 @@
 import axios from "axios";
 import * as dotenv from "dotenv";
 import {
-  addReceiverId,
-  removeReceiverId,
+  addReceiver,
+  removeReceiver,
   plusProcess,
   getVariables,
   getTotalReceivers,
@@ -21,7 +21,7 @@ const config = {
   },
 };
 
-const handleEvent = async (event) => {
+async function handleEvent(event) {
   if (
     event.type == "message" &&
     event.message.type === "text" &&
@@ -38,13 +38,13 @@ const handleEvent = async (event) => {
     let commandMessage = "Unknown Command";
     if (event.message.text.substring(1, 6) === "start") {
       commandMessage = event.message.text.substring(1);
-      const result = await addReceiverId(id, event.message.text.split(" ").slice(1), chatName);
+      const result = await addReceiver(id, event.message.text.split(" ").slice(1), chatName);
       if (result !== null) {
         await replyText(event.replyToken, addReceiverReplyText(result));
       }
     } else if (event.message.text.substring(1, 5) === "stop") {
       commandMessage = "stop";
-      const success = removeReceiverId(id);
+      const success = removeReceiver(id);
       await replyText(
         event.replyToken,
         success ? "บ๊ายบาย ไว้เจอกันอีกน้า👋" : "เรียก👉 !start ก่อนนะงับ"
@@ -148,5 +148,5 @@ const handleEvent = async (event) => {
     console.log(event);
   }
   return;
-};
+}
 export { handleEvent };

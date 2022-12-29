@@ -1,14 +1,27 @@
-import * as dotenv from "dotenv";
+import * as line from "@line/bot-sdk";
 import { constants } from "./constants";
+import { validatePushMessage } from "./validateMessage";
 const { ALLOW_PUSH_MESSAGE } = constants;
-const env = dotenv.config().parsed;
 let client = null;
-function initClient(c) {
-  client = c;
+function initClient(lineConfig: { channelAccessToken: string; channelSecret: string }) {
+  client = new line.Client(lineConfig);
 }
-async function pushFlex(id: string, bubble: object, altText: string) {
+async function pushFlex(
+  id: string,
+  elements: object | Array<Array<object>>,
+  altText: string | Array<string>
+) {
   let messages = [];
-  messages.push({ type: "flex", altText: altText, contents: bubble });
+  if (Array.isArray(elements)) {
+    for (let i = 0; i < elements.length; ++i) {
+      if (elements[i].length !== 0)
+        messages.push({
+          type: "flex",
+          altText: altText[i],
+          contents: { type: "carousel", contents: elements[i] },
+        });
+    }
+  } else if (elements) messages.push({ type: "flex", altText: altText, contents: elements });
   if (!ALLOW_PUSH_MESSAGE) {
     console.log("pushFlex", id, messages);
     return;
@@ -44,9 +57,7 @@ async function pushText(id: string, bundle: string | Array<string>) {
     bundle.forEach((element: string) => {
       if (element.length !== 0) messages.push({ type: "text", text: element });
     });
-  } else if (bundle.length !== 0) {
-    messages.push({ type: "text", text: bundle });
-  }
+  } else if (bundle.length !== 0) messages.push({ type: "text", text: bundle });
   if (!ALLOW_PUSH_MESSAGE) {
     console.log("pushText", id, messages);
     return;
@@ -109,7 +120,7 @@ async function setWebhookEndpointUrl(endpoint: string) {
   });
   return Boolean(res);
 }
-async function testWebhookEndpoint(endpoint?: string) {
+async function testWebhookEndpointUrl() {
   const res = await client.testWebhookEndpoint().catch((err) => {
     console.log(err);
   });
@@ -123,7 +134,7 @@ export {
   getGroupName,
   countGroupMembers,
   setWebhookEndpointUrl,
-  testWebhookEndpoint,
+  testWebhookEndpointUrl,
   pushFlex,
   replyFlex,
 };

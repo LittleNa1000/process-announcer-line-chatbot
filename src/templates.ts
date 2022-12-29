@@ -31,9 +31,9 @@ function generateSlotInfoText(slot: Array<any>, shift: number) {
   }
   return `${NUM !== -1 ? "#" + slot[NUM] : ""} ${
     BEGIN_TIME !== -1 && END_TIME !== -1 && slot[BEGIN_TIME] !== slot[END_TIME]
-      ? "⏱️ `" + slot[BEGIN_TIME] + " - " + slot[END_TIME] + "`"
+      ? slot[BEGIN_TIME] + " - " + slot[END_TIME]
       : BEGIN_TIME !== -1
-      ? "🔔 `" + slot[BEGIN_TIME] + "`"
+      ? slot[BEGIN_TIME]
       : ""
   }\n${OWNER !== -1 ? slot[OWNER] : ""} ${NAME !== -1 ? slot[NAME] : ""}\n${
     LEADER !== -1 ? "ผต. " + slot[LEADER] : ""
@@ -42,7 +42,467 @@ function generateSlotInfoText(slot: Array<any>, shift: number) {
   }`;
 }
 function generateSlotInfoFlex(slot: Array<any>, shift: number): Array<any> {
-  return;
+  if (BEGIN_TIME !== -1 && shift !== 0) {
+    slot[BEGIN_TIME] += ` (${shift >= 0 ? "+" : ""}${shift})`;
+  }
+  if (END_TIME !== -1 && shift !== 0) {
+    slot[END_TIME] += ` (${shift >= 0 ? "+" : ""}${shift})`;
+  }
+  if (slot[MEMBER].split("\n").length > 1) {
+    let membersTextBox: Array<any> = [
+      {
+        type: "text",
+        text: "ผู้รับผิดชอบ",
+        weight: "bold",
+        decoration: "underline",
+        size: "xs",
+      },
+      {
+        type: "text",
+        text: MEMBER !== -1 ? slot[MEMBER] : "unknown",
+        wrap: true,
+        size: "sm",
+        maxLines: 12,
+      },
+    ];
+    return [
+      {
+        type: "bubble",
+        size: "micro",
+        header: {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "text",
+                  text: NUM !== -1 ? "#" + slot[NUM] : "#0",
+                  weight: "bold",
+                  adjustMode: "shrink-to-fit",
+                  size: "xs",
+                },
+              ],
+              backgroundColor: "#c9eb34",
+              justifyContent: "center",
+              flex: 0,
+              paddingAll: "xs",
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "text",
+                  text:
+                    BEGIN_TIME !== -1 && END_TIME !== -1 && slot[BEGIN_TIME] !== slot[END_TIME]
+                      ? slot[BEGIN_TIME] + " - " + slot[END_TIME]
+                      : BEGIN_TIME !== -1
+                      ? slot[BEGIN_TIME]
+                      : "ไม่มีเวลาระบุ",
+                  weight: "bold",
+                  align: "end",
+                  wrap: true,
+                  gravity: "center",
+                  color: shift > 0 ? "#ff1c1c" : shift < 0 ? "#ffff00" : undefined,
+                },
+              ],
+            },
+          ],
+          paddingBottom: "none",
+          paddingTop: "none",
+          paddingEnd: "sm",
+          paddingStart: "none",
+        },
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            {
+              type: "text",
+              text: OWNER !== -1 ? slot[OWNER] : "-",
+              align: "center",
+              wrap: true,
+              weight: "bold",
+              size: "sm",
+            },
+            {
+              type: "text",
+              text: NAME !== -1 ? slot[NAME] : "กิจกรรมไม่มีชื่อ",
+              align: "center",
+              wrap: true,
+              size: "sm",
+            },
+            {
+              type: "separator",
+              margin: "none",
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "text",
+                  text: "ผู้ตัดสินใจสูงสุด",
+                  weight: "bold",
+                  decoration: "underline",
+                  size: "xs",
+                },
+                {
+                  type: "text",
+                  text: LEADER !== -1 ? slot[LEADER] : "unknown",
+                  wrap: true,
+                  gravity: "top",
+                  size: "sm",
+                },
+                {
+                  type: "text",
+                  text: "สถานที่",
+                  weight: "bold",
+                  decoration: "underline",
+                  size: "xs",
+                },
+                {
+                  type: "text",
+                  text: LOCATION !== -1 ? slot[LOCATION] : "unknown",
+                  size: "sm",
+                },
+                {
+                  type: "text",
+                  text: "(ผู้รับผิดชอบดูช่องถัดไป)",
+                  size: "xxs",
+                  style: "italic",
+                  align: "center",
+                  color: "#7c838f",
+                },
+              ],
+              paddingStart: "sm",
+              paddingEnd: "xs",
+              margin: "sm",
+              justifyContent: "center",
+            },
+          ],
+          paddingAll: "xs",
+          spacing: "xs",
+          justifyContent: "space-between",
+        },
+        footer: {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "text",
+                  text: "โทรหา ผต.",
+                  adjustMode: "shrink-to-fit",
+                  size: "xs",
+                  align: "center",
+                  color: "#ffffff",
+                },
+              ],
+              backgroundColor: "#c74444",
+              cornerRadius: "sm",
+              action: {
+                type: "uri",
+                uri: "tel:0897991699",
+              },
+              paddingAll: "xs",
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "text",
+                  text: "More detail",
+                  align: "center",
+                  adjustMode: "shrink-to-fit",
+                  size: "xs",
+                  color: "#ffffff",
+                },
+              ],
+              backgroundColor: "#4490c7",
+              cornerRadius: "sm",
+              action: {
+                type: "postback",
+                label: "action",
+                data: `slotDetail ${NUM !== -1 ? slot[NUM] : "0"}`,
+              },
+              paddingAll: "xs",
+            },
+          ],
+          paddingAll: "sm",
+          spacing: "md",
+        },
+        styles: {
+          header: {
+            backgroundColor: "#fc9003",
+          },
+          footer: {
+            backgroundColor: "#fc9003",
+          },
+        },
+      },
+      {
+        type: "bubble",
+        size: "micro",
+        header: {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "text",
+                  text: NUM !== -1 ? "#" + slot[NUM] : "#0",
+                  weight: "bold",
+                  adjustMode: "shrink-to-fit",
+                  size: "xs",
+                },
+              ],
+              backgroundColor: "#c9eb34",
+              justifyContent: "center",
+              flex: 0,
+              paddingAll: "xs",
+            },
+            {
+              type: "box",
+              layout: "vertical",
+              contents: [
+                {
+                  type: "text",
+                  text:
+                    BEGIN_TIME !== -1 && END_TIME !== -1 && slot[BEGIN_TIME] !== slot[END_TIME]
+                      ? slot[BEGIN_TIME] + " - " + slot[END_TIME]
+                      : BEGIN_TIME !== -1
+                      ? slot[BEGIN_TIME]
+                      : "ไม่มีเวลาระบุ",
+                  weight: "bold",
+                  align: "end",
+                  wrap: true,
+                  gravity: "center",
+                  color: shift > 0 ? "#ff1c1c" : shift < 0 ? "#ffff00" : undefined,
+                },
+              ],
+            },
+          ],
+          paddingBottom: "none",
+          paddingTop: "none",
+          paddingEnd: "sm",
+          paddingStart: "none",
+        },
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: membersTextBox,
+          paddingAll: "xs",
+          paddingStart: "sm",
+        },
+        styles: {
+          header: {
+            backgroundColor: "#fc9003",
+          },
+        },
+      },
+    ];
+  }
+  // -----------------------------------------------------------
+  return [
+    {
+      type: "bubble",
+      size: "micro",
+      header: {
+        type: "box",
+        layout: "horizontal",
+        contents: [
+          {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "text",
+                text: NUM !== -1 ? "#" + slot[NUM] : "#0",
+                weight: "bold",
+                adjustMode: "shrink-to-fit",
+                size: "xs",
+              },
+            ],
+            backgroundColor: "#c9eb34",
+            justifyContent: "center",
+            flex: 0,
+            paddingAll: "xs",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "text",
+                text:
+                  BEGIN_TIME !== -1 && END_TIME !== -1 && slot[BEGIN_TIME] !== slot[END_TIME]
+                    ? slot[BEGIN_TIME] + " - " + slot[END_TIME]
+                    : BEGIN_TIME !== -1
+                    ? slot[BEGIN_TIME]
+                    : "ไม่มีเวลาระบุ",
+                weight: "bold",
+                align: "end",
+                wrap: true,
+                gravity: "center",
+                color: shift > 0 ? "#ff1c1c" : shift < 0 ? "#ffff00" : undefined,
+              },
+            ],
+          },
+        ],
+        paddingBottom: "none",
+        paddingTop: "none",
+        paddingEnd: "sm",
+        paddingStart: "none",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: OWNER !== -1 ? slot[OWNER] : "-",
+            align: "center",
+            wrap: true,
+            weight: "bold",
+            size: "sm",
+          },
+          {
+            type: "text",
+            text: NAME !== -1 ? slot[NAME] : "กิจกรรมไม่มีชื่อ",
+            align: "center",
+            wrap: true,
+            size: "sm",
+          },
+          {
+            type: "separator",
+            margin: "none",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "text",
+                text: "ผู้ตัดสินใจสูงสุด",
+                weight: "bold",
+                decoration: "underline",
+                size: "xs",
+              },
+              {
+                type: "text",
+                text: LEADER !== -1 ? slot[LEADER] : "unknown",
+                wrap: true,
+                gravity: "top",
+                size: "sm",
+              },
+              {
+                type: "text",
+                text: "สถานที่",
+                weight: "bold",
+                decoration: "underline",
+                size: "xs",
+              },
+              {
+                type: "text",
+                text: LOCATION !== -1 ? slot[LOCATION] : "unknown",
+                size: "sm",
+              },
+              {
+                type: "text",
+                text: "ผู้รับผิดชอบ",
+                weight: "bold",
+                decoration: "underline",
+                size: "xs",
+              },
+              {
+                type: "text",
+                text: MEMBER !== -1 ? slot[MEMBER] : "unknown",
+                size: "sm",
+                wrap: true,
+              },
+            ],
+            paddingStart: "sm",
+            paddingEnd: "xs",
+            margin: "sm",
+            justifyContent: "center",
+          },
+        ],
+        paddingAll: "xs",
+        spacing: "xs",
+        justifyContent: "space-between",
+      },
+      footer: {
+        type: "box",
+        layout: "horizontal",
+        contents: [
+          {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "text",
+                text: "โทรหา ผต.",
+                adjustMode: "shrink-to-fit",
+                size: "xs",
+                align: "center",
+                color: "#ffffff",
+              },
+            ],
+            backgroundColor: "#c74444",
+            cornerRadius: "sm",
+            action: {
+              type: "uri",
+              uri: "tel:(0897991699)",
+            },
+            paddingAll: "xs",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "text",
+                text: "More detail",
+                align: "center",
+                adjustMode: "shrink-to-fit",
+                size: "xs",
+                color: "#ffffff",
+              },
+            ],
+            backgroundColor: "#4490c7",
+            cornerRadius: "sm",
+            action: {
+              type: "postback",
+              label: "action",
+              data: `slotDetail ${NUM !== -1 ? slot[NUM] : "0"}`,
+            },
+            paddingAll: "xs",
+          },
+        ],
+        paddingAll: "sm",
+        spacing: "md",
+      },
+      styles: {
+        header: {
+          backgroundColor: "#fc9003",
+        },
+        footer: {
+          backgroundColor: "#fc9003",
+        },
+      },
+    },
+  ];
 }
 function generatePlusProcessFlex(props: Array<number | string>) {
   const [duration, totalShift, atSlot, idx, beginTime, endTime, shift, sender] = props;
@@ -500,4 +960,5 @@ export {
   generatePlusProcessFlex,
   helpFlex,
   helpText,
+  generateSlotInfoFlex,
 };

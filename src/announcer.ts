@@ -1,6 +1,13 @@
 import { readProcess } from "./file-manager/readcsv";
 import { constants } from "./constants";
-const { BEGIN_TIME, END_TIME, OWNER, PUSH_MESSAGE_TYPE } = constants;
+const {
+  BEGIN_TIME,
+  END_TIME,
+  OWNER,
+  PUSH_MESSAGE_TYPE,
+  MAX_BUBBLE_PER_CAROUSEL,
+  ANNOUNCE_INTERVAL,
+} = constants;
 import { pushText, countGroupMembers, pushFlex } from "./client";
 import {
   readReceivers,
@@ -11,22 +18,24 @@ import {
 import {
   generatePlusProcessFlex,
   generatePlusProcessText,
+  generateSlotInfoFlex,
   generateSlotInfoText,
 } from "./templates";
-let intervalId = null;
-let startDate = null;
-let slots: any;
-let idx = 0;
-let shift = undefined;
-let slotsBeginTime = undefined;
-let totalShift = 0;
-
+let intervalId = null,
+  startDate = null,
+  slots: any,
+  idx = 0,
+  shift: Array<number>,
+  slotsBeginTime: Array<number>,
+  totalShift = 0;
+type AddReceiverResults = null | number | Array<number | string>;
+type Receiver = { id: string; chatName: string; members: number; preferences: Array<string> };
 async function initAnnouncer() {
   if (intervalId !== null) clearInterval(intervalId);
   slots = await readProcess();
   slotsBeginTime = new Array(slots.length + 10).fill(0);
-  let dateDiff = 0;
-  let temp = new Array(slots.length + 10).fill(0);
+  let dateDiff = 0,
+    temp = new Array(slots.length + 10).fill(0);
   for (let i = 1; i < slots.length; ++i) {
     const slotTime = slots[i][BEGIN_TIME].split(":").map((e) => Number.parseInt(e));
     temp[i] = slotTime[0] * 60 + slotTime[1];
@@ -45,9 +54,9 @@ async function initAnnouncer() {
   totalShift = shift[slots.length - 1];
   startDate = new Date(new Date().toDateString());
   idx = resetIdx();
-  intervalId = setInterval(announce, 5 * 1000);
+  intervalId = setInterval(announce, ANNOUNCE_INTERVAL * 1000);
 }
-function resetIdx() {
+function resetIdx(): number {
   const currentTime = getCurrentTime();
   let nextSlotTime = 0;
   let minIdx = 0;
@@ -63,12 +72,12 @@ function resetIdx() {
   }
   return minIdx;
 }
-function getTotalReceivers(receivers: Array<any>) {
+function getTotalReceivers(receivers: Array<Receiver>): number {
   return receivers.reduce((totalReceivers: number, { members }) => {
     return totalReceivers + (Number.isInteger(members) ? members : 0);
   }, 0);
 }
-function getVariables() {
+function getVariables(): Array<any> {
   const { receivers } = readReceivers();
   try {
     return [
@@ -87,66 +96,136 @@ function getVariables() {
   }
   return [];
 }
-function getCurrentTime() {
+function getCurrentTime(): number {
   const currentTime = new Date();
   const currentDate = new Date(currentTime.toDateString());
   const dateDiff = (currentDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
   return currentTime.getHours() * 60 + currentTime.getMinutes() + 60 * 24 * dateDiff;
 }
-function getNextSlotTime(index = idx) {
+function getNextSlotTime(index = idx): number {
   if (index >= slots.length - 1) {
     return Number.POSITIVE_INFINITY;
   }
   return slotsBeginTime[index + 1];
 }
-const announce = async () => {
-  if (idx < slots.length - 1) {
-    let bundle = [];
-    let slotOwner = [];
-    let nextSlotTime = getNextSlotTime();
-    let currentTime = getCurrentTime();
-    while (nextSlotTime === currentTime || (nextSlotTime <= currentTime && idx !== 0)) {
-      if (bundle.length >= 5) {
+function filterSlotsElement(
+  slotsElement: Array<string | object>,
+  preferences: Array<string>,
+  slotsOwner: Array<string>,
+  bubblesPattern?: Array<number>
+): Array<any> {
+  let filteredSlotsElement = [],
+    filteredBubblesPattern = [],
+    isMatch: boolean;
+  if (preferences.length === 0 || OWNER === -1) {
+    return [slotsElement, bubblesPattern];
+  }
+  for (let i = 0; i < slotsElement.length; ++i) {
+    isMatch = false;
+    preferences.forEach((pref: string) => {
+      if (slotsOwner[i].replace("COOR", "COOP").match(pref)) isMatch = true;
+    });
+    if (isMatch) {
+      filteredSlotsElement.push(slotsElement[i]);
+      filteredBubblesPattern.push(bubblesPattern[i]);
+    }
+  }
+  return [filteredSlotsElement, filteredBubblesPattern];
+}
+function getAltText(carousel: Array<any>): string {
+  const lastSlotNum = Number.parseInt(
+    carousel[carousel.length - 1].header.contents[0].contents[0].text.replace("#", "")
+  );
+  let slot = [...slots[lastSlotNum]];
+  return generateSlotInfoText(slot, shift[lastSlotNum]);
+}
+async function announce() {
+  if (idx >= slots.length - 1) {
+    idx = 0;
+    return;
+  }
+  let slotsText: Array<string> = [],
+    slotsOwner: Array<string> = [],
+    bubbles: Array<object> = [],
+    bubblesPattern: Array<number> = [],
+    countCarousel = 0,
+    current = 0,
+    nextSlotTime = getNextSlotTime(),
+    currentTime = getCurrentTime();
+  while (nextSlotTime === currentTime || (nextSlotTime <= currentTime && idx !== 0)) {
+    let slot = [...slots[idx + 1]];
+    if (PUSH_MESSAGE_TYPE == "text") {
+      slotsText.push(generateSlotInfoText(slot, shift[idx + 1]));
+      slotsOwner.push(OWNER !== -1 ? slot[OWNER].toUpperCase() : "");
+      if (slotsText.length >= 5) {
         setTimeout(announce, 0.5 * 1000);
         break;
       }
-      idx++;
-      nextSlotTime = getNextSlotTime();
-      currentTime = getCurrentTime();
-      let slot = [...slots[idx]];
-      bundle.push(generateSlotInfoText(slot, shift[idx]));
-      slotOwner.push(OWNER !== -1 ? slot[OWNER].toUpperCase() : "");
-    }
-    if (bundle.length > 0) {
-      const { receivers } = readReceivers();
-      receivers.forEach(async (receiver: any) => {
-        let prefBundle = [];
-        let isMatch = false;
-        if (receiver.preferences.length === 0 || OWNER === -1) {
-          prefBundle = bundle;
-        } else {
-          for (let i = 0; i < bundle.length; ++i) {
-            isMatch = false;
-            receiver.preferences.forEach((pref: string) => {
-              if (slotOwner[i].replace("COOR", "COOP").match(pref)) isMatch = true;
-            });
-            if (isMatch) prefBundle.push(bundle[i]);
-          }
-        }
-        await pushText(receiver.id, prefBundle);
+    } else {
+      const slotBubble = generateSlotInfoFlex(slot, shift[idx + 1]);
+      if (current + slotBubble.length > MAX_BUBBLE_PER_CAROUSEL) {
+        countCarousel++;
+        current = 0;
+      }
+      current += slotBubble.length;
+      if (countCarousel >= 5) {
+        setTimeout(announce, 0.5 * 1000);
+        break;
+      }
+      slotBubble.forEach((bubble) => {
+        bubbles.push(bubble);
+        slotsOwner.push(OWNER !== -1 ? slot[OWNER].toUpperCase() : "");
+        bubblesPattern.push(slotBubble.length);
       });
     }
-    bundle = [];
-    slotOwner = [];
-  } else {
-    idx = 0;
+    idx++;
+    nextSlotTime = getNextSlotTime();
+    currentTime = getCurrentTime();
   }
-};
+  if (slotsText.length === 0 && bubbles.length === 0) return;
+  const { receivers } = readReceivers();
+  receivers.forEach(async (receiver: Receiver) => {
+    if (PUSH_MESSAGE_TYPE == "flex") {
+      const [filteredBubbles, filteredBubblesPattern] = filterSlotsElement(
+        bubbles,
+        receiver.preferences,
+        slotsOwner,
+        bubblesPattern
+      );
+      let carousels = [],
+        carousel = [],
+        altTextList = [];
+      for (let i = 0; i < filteredBubbles.length; ) {
+        if (filteredBubblesPattern[i] + carousel.length > MAX_BUBBLE_PER_CAROUSEL) {
+          carousels.push(carousel);
+          altTextList.push(getAltText(carousel));
+          carousel = [];
+        }
+        let t = filteredBubblesPattern[i];
+        for (let j = 0; j < t; ++j, ++i) carousel.push(filteredBubbles[i]);
+      }
+      if (carousel.length !== 0) {
+        carousels.push(carousel);
+        altTextList.push(getAltText(carousel));
+        carousel = [];
+      }
+      await pushFlex(receiver.id, carousels, altTextList);
+    } else if (PUSH_MESSAGE_TYPE == "text")
+      await pushText(
+        receiver.id,
+        filterSlotsElement(slotsText, receiver.preferences, slotsOwner)[0]
+      );
+  });
+}
 
-const addReceiverId = async (id: string, arg: Array<string>, chatName: string) => {
+async function addReceiver(
+  id: string,
+  arg: Array<string>,
+  chatName: string
+): Promise<AddReceiverResults> {
   const currentTime = getCurrentTime();
   const { receivers } = readReceivers();
-  let i = receivers.map((e) => e.id).indexOf(id);
+  let i = receivers.map((e: Receiver) => e.id).indexOf(id);
   if (i === -1) {
     const members = id.charAt(0) === "C" ? await countGroupMembers(id) : 1;
     receivers.push({
@@ -176,26 +255,26 @@ const addReceiverId = async (id: string, arg: Array<string>, chatName: string) =
       shift[idx + 1] !== 0 ? `(${shift[idx + 1] >= 0 ? "+" : ""}${shift[idx + 1]})` : ""
     }`,
   ];
-};
+}
 
-const removeReceiverId = (id: string) => {
+async function removeReceiver(id: string): Promise<boolean> {
   const { receivers } = readReceivers();
-  const i = receivers.map((e) => e.id).indexOf(id);
+  const i = receivers.map((e: Receiver) => e.id).indexOf(id);
   if (i !== -1) {
     receivers.splice(i, 1);
     writeReceivers(receivers);
     return true;
   }
   return false;
-};
+}
 
-const plusProcess = async (
+async function plusProcess(
   params: Array<any>,
   isNegative: boolean,
   sender: string,
   id: string,
   chatName: string
-) => {
+): Promise<AddReceiverResults> {
   let [, duration, atSlot] = params;
   atSlot = Math.max(1, atSlot === "now" ? idx : atSlot === "next" ? idx + 1 : parseInt(atSlot));
   duration = isNegative ? -parseInt(duration) : parseInt(duration);
@@ -214,7 +293,7 @@ const plusProcess = async (
   }
   writeBackupShift(shift);
   totalShift += duration;
-  const result = await addReceiverId(id, null, chatName);
+  const result = await addReceiver(id, null, chatName);
   const { receivers } = readReceivers();
   const props = [
     duration,
@@ -227,28 +306,21 @@ const plusProcess = async (
     sender,
   ];
   if (PUSH_MESSAGE_TYPE == "flex") {
-    const flex = generatePlusProcessFlex(props);
+    const bubble = generatePlusProcessFlex(props);
     const altText = `${
       duration < 0 ? "" : "+"
     }${duration} นาที ตั้งแต่ Slot #${atSlot} รวม ${totalShift} นาที สั่งโดย ${sender}`;
-    receivers.forEach(async (e) => {
-      await pushFlex(e.id, flex, altText);
+    receivers.forEach(async (e: Receiver) => {
+      await pushFlex(e.id, bubble, altText);
     });
   } else if (PUSH_MESSAGE_TYPE == "text") {
     const text = generatePlusProcessText(props);
-    receivers.forEach(async (e) => {
+    receivers.forEach(async (e: Receiver) => {
       await pushText(e.id, text);
     });
   }
   setTimeout(announce, 0.5 * 1000);
   return result;
-};
+}
 
-export {
-  initAnnouncer,
-  addReceiverId,
-  removeReceiverId,
-  plusProcess,
-  getVariables,
-  getTotalReceivers,
-};
+export { initAnnouncer, addReceiver, removeReceiver, plusProcess, getVariables, getTotalReceivers };
