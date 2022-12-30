@@ -2,14 +2,14 @@ import * as dotenv from "dotenv";
 import * as readline from "readline";
 import { initAnnouncer } from "./announcer";
 import { initClient } from "./client";
-import { constants } from "./constants";
+import { configs } from "./config";
 import { setWebhookEndpointUrl, testWebhookEndpointUrl } from "./client";
 const readlineInterface = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 const env = dotenv.config().parsed;
-const { PROCESS_FILE_NAME, ALLOW_PUSH_MESSAGE } = constants;
+const { PROCESS_FILE_NAME, ALLOW_PUSH_MESSAGE } = configs;
 function validURL(str: string) {
   const pattern = new RegExp(
     "^(https?:\\/\\/)?" +

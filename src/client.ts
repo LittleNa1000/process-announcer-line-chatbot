@@ -1,7 +1,7 @@
 import * as line from "@line/bot-sdk";
-import { constants } from "./constants";
+import { configs } from "./config";
 import { validatePushMessage } from "./validateMessage";
-const { ALLOW_PUSH_MESSAGE } = constants;
+const { ALLOW_PUSH_MESSAGE } = configs;
 let client = null;
 function initClient(lineConfig: { channelAccessToken: string; channelSecret: string }) {
   client = new line.Client(lineConfig);
@@ -31,15 +31,23 @@ async function pushFlex(
     console.log(err);
   });
 }
-async function replyFlex(replyToken: string, carousel: object) {
+async function replyFlex(
+  replyToken: string,
+  carousel: Array<object>,
+  altText: string,
+  notificationDisabled = false
+) {
   if (!carousel) return;
   await client
-    .replyMessage(replyToken, {
-      type: "flex",
-      altText:
-        "พิมพ์ !start หรือ !start ตามด้วยชื่อฝ่าย (เช่น !start plan coop) เพื่อเริ่มแจ้ง Slot",
-      contents: carousel,
-    })
+    .replyMessage(
+      replyToken,
+      {
+        type: "flex",
+        altText: altText,
+        contents: { type: "carousel", contents: carousel },
+      },
+      notificationDisabled
+    )
     .catch((err) => {
       console.log(err);
     });

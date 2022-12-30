@@ -6,12 +6,13 @@ import {
   plusProcess,
   getVariables,
   getTotalReceivers,
+  getSlotDetail,
 } from "./announcer";
 import { replyText, getSender, getGroupName, replyFlex } from "./client";
-import { constants } from "./constants";
+import { configs } from "./config";
 import { readReceivers } from "./file-manager/readwritejson";
 import { addReceiverReplyText, helpFlex } from "./templates";
-const { PROCESS_FILE_NAME } = constants;
+const { PROCESS_FILE_NAME } = configs;
 const env = dotenv.config().parsed;
 const config = {
   headers: {
@@ -20,7 +21,16 @@ const config = {
     }`,
   },
 };
-
+async function getLogInfo(event: any) {
+  const timeStamp = new Date(event.timestamp);
+  const id = event.source.type === "group" ? event.source.groupId : event.source.userId;
+  const sender = await getSender(
+    event.source.type === "group" ? event.source.groupId : null,
+    event.source.userId
+  );
+  const chatName = event.source.type === "group" ? await getGroupName(id) : sender;
+  return [timeStamp, id, sender, chatName];
+}
 async function handleEvent(event) {
   if (
     event.type == "message" &&
@@ -28,13 +38,7 @@ async function handleEvent(event) {
     event.message.text.charAt(0) === "!" &&
     event.message.text.replaceAll("!", "").trim().length > 0
   ) {
-    const timeStamp = new Date(event.timestamp);
-    const id = event.source.type === "group" ? event.source.groupId : event.source.userId;
-    const sender = await getSender(
-      event.source.type === "group" ? event.source.groupId : null,
-      event.source.userId
-    );
-    const chatName = event.source.type === "group" ? await getGroupName(id) : sender;
+    const [timeStamp, id, sender, chatName] = await getLogInfo(event);
     let commandMessage = "Unknown Command";
     if (event.message.text.substring(1, 6) === "start") {
       commandMessage = event.message.text.substring(1);
@@ -132,7 +136,11 @@ async function handleEvent(event) {
       await replyText(event.replyToken, text);
     } else if (event.message.text.substring(1, 5) === "help") {
       commandMessage = "help";
-      await replyFlex(event.replyToken, helpFlex());
+      await replyFlex(
+        event.replyToken,
+        helpFlex(),
+        "พิมพ์ !start หรือ !start ตามด้วยชื่อฝ่าย (เช่น !start plan coop) เพื่อเริ่มแจ้ง Slot"
+      );
     } else {
       await replyText(event.replyToken, "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢");
       return;
@@ -145,7 +153,24 @@ async function handleEvent(event) {
       commandMessage
     );
   } else if (event.type === "postback") {
-    console.log(event);
+    const [timeStamp, id, sender, chatName] = await getLogInfo(event);
+    let postBackCommand = "Unknown";
+    if (event.postback.data.substring(0, 10) === "slotDetail") {
+      const slotNum = Number.parseInt(event.postback.data.split(" ")[1]);
+      postBackCommand = "Postback: slotDetail " + slotNum;
+      try {
+        await replyFlex(event.replyToken, getSlotDetail(slotNum), `Slot #${slotNum} full detail`);
+      } catch (err) {
+        postBackCommand += " " + err;
+      }
+    }
+    console.log(
+      timeStamp.toLocaleString(),
+      sender,
+      event.source.userId,
+      id.charAt(0) === "U" ? "(dm)" : "in " + chatName,
+      postBackCommand
+    );
   }
   return;
 }

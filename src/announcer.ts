@@ -1,5 +1,5 @@
 import { readProcess } from "./file-manager/readcsv";
-import { constants } from "./constants";
+import { configs } from "./config";
 const {
   BEGIN_TIME,
   END_TIME,
@@ -7,7 +7,7 @@ const {
   PUSH_MESSAGE_TYPE,
   MAX_BUBBLE_PER_CAROUSEL,
   ANNOUNCE_INTERVAL,
-} = constants;
+} = configs;
 import { pushText, countGroupMembers, pushFlex } from "./client";
 import {
   readReceivers,
@@ -138,6 +138,13 @@ function getAltText(carousel: Array<any>): string {
   );
   let slot = [...slots[lastSlotNum]];
   return generateSlotInfoText(slot, shift[lastSlotNum]);
+}
+function getSlotDetail(slotNum: number): Array<object> {
+  if (slotNum <= 0 || slotNum >= slots.length) {
+    throw "Invalid slotNum";
+  }
+  let slot = [...slots[slotNum]];
+  return generateSlotInfoFlex(slot, shift[slotNum], true);
 }
 async function announce() {
   if (idx >= slots.length - 1) {
@@ -323,4 +330,12 @@ async function plusProcess(
   return result;
 }
 
-export { initAnnouncer, addReceiver, removeReceiver, plusProcess, getVariables, getTotalReceivers };
+export {
+  initAnnouncer,
+  addReceiver,
+  removeReceiver,
+  plusProcess,
+  getVariables,
+  getTotalReceivers,
+  getSlotDetail,
+};

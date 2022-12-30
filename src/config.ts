@@ -1,4 +1,4 @@
-export const constants = {
+export const configs = {
   NUM: 0,
   BEGIN_TIME: 1,
   END_TIME: 2,
