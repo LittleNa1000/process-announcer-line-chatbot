@@ -14,7 +14,6 @@ import {
   writeBackupShift,
   writeReceivers,
   readBackupShift,
-  readPlusProcessRecords,
 } from "./file-manager/readwritejson";
 import {
   generatePlusProcessFlex,
@@ -135,8 +134,9 @@ function filterSlotsElement(
 }
 function getAltText(carousel: Array<any>): string {
   const lastSlotNum = Number.parseInt(
-    carousel[carousel.length - 1].header.contents[0].contents[0].text.replace("#", "")
+    carousel[carousel.length - 1].header.contents[0].contents[0].text.replace("#", "") || 0
   );
+  if (lastSlotNum === 0) return "Unknown Slot";
   let slot = [...slots[lastSlotNum]];
   return generateSlotInfoText(slot, shift[lastSlotNum]);
 }
@@ -189,6 +189,7 @@ async function announce() {
     idx++;
     nextSlotTime = getNextSlotTime();
     currentTime = getCurrentTime();
+    console.log(`Announcing #${idx}`);
   }
   if (slotsText.length === 0 && bubbles.length === 0) return;
   const { receivers } = readReceivers();
@@ -254,15 +255,15 @@ async function addReceiver(
     });
   }
   writeReceivers(receivers);
-  if (idx >= slots.length - 1 || (idx === 0 && getNextSlotTime(slots.length - 2) < currentTime)) {
+  if (idx >= slots.length - 1 || (idx === 0 && getNextSlotTime(slots.length - 2) < currentTime))
     return -1;
-  }
-  return [
-    idx + 1,
-    `${slots[idx + 1][BEGIN_TIME]}${
-      shift[idx + 1] !== 0 ? `(${shift[idx + 1] >= 0 ? "+" : ""}${shift[idx + 1]})` : ""
-    }`,
-  ];
+  const beginTimeArray = slots[idx + 1][BEGIN_TIME].split(":").map((e: string) =>
+    Number.parseInt(e)
+  );
+  const beginTimeDateObject = new Date(
+    (beginTimeArray[0] * 60 + beginTimeArray[1] + shift[idx + 1]) * 60000
+  );
+  return [idx + 1, beginTimeDateObject.toISOString().substring(11, 16)];
 }
 
 async function removeReceiver(id: string): Promise<boolean> {

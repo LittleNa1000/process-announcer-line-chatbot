@@ -99,15 +99,13 @@ async function handleEvent(event) {
           currentTime,
           nextSlotTime,
         ] = getVariables();
-        const nextSlotDate = new Date(0);
-        nextSlotDate.setMinutes(Math.min(nextSlotTime, 23 * 60 + 59));
-        const currentDate = new Date(0);
-        currentDate.setMinutes(Math.min(currentTime, 23 * 60 + 59));
+        const nextSlotDateObject = new Date(Math.min(nextSlotTime, 23 * 60 + 59) * 60000);
+        const currentDateObject = new Date(Math.min(currentTime, 23 * 60 + 59) * 60000);
         const text = `Interval: ${
           intervalId ? `Running (${intervalId})` : "Rest"
-        }\nTotal Chat Rooms: ${totalChats}\nTotal Receivers: ${totalReceivers}\nidx: ${idx}/${totalSlots}\n+-Total: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${currentDate
+        }\nTotal Chat Rooms: ${totalChats}\nTotal Receivers: ${totalReceivers}\nidx: ${idx}/${totalSlots}\n+-Total: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${currentDateObject
           .toISOString()
-          .substring(11, 16)}\nNext Slot: ${nextSlotDate.toISOString().substring(11, 16)}`;
+          .substring(11, 16)}\nNext Slot: ${nextSlotDateObject.toISOString().substring(11, 16)}`;
         console.log(text.split("\n").toString());
         await replyText(event.replyToken, text);
       } catch (err) {
@@ -138,10 +136,10 @@ async function handleEvent(event) {
         });
       const { receivers } = readReceivers();
       const totalReceivers = getTotalReceivers(receivers);
-      const text = `Usage: ${usage}/${quota} (${
+      const reply = `Usage: ${usage}/${quota} (${
         (usage * 100) / quota
       }%)\nTotal Receivers: ${totalReceivers}\nType: ${type}`;
-      await replyText(event.replyToken, text);
+      await replyText(event.replyToken, reply);
     } else if (event.message.text.substring(1, 5) === "help") {
       commandMessage = "help";
       await replyFlex(
@@ -191,8 +189,7 @@ async function handleEvent(event) {
         await replyText(event.replyToken, `ปลดแบน ${unbannedId.substring(0, 5)}... แล้วงับ`);
       }
     } else {
-      await replyText(event.replyToken, "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢");
-      return;
+      return await replyText(event.replyToken, "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢");
     }
     console.log(
       timeStamp.toLocaleString(),

@@ -42,15 +42,20 @@ function generateSlotInfoText(slot: Array<any>, shift: number) {
   }`;
 }
 function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Array<any> {
-  if (BEGIN_TIME !== -1 && shift !== 0) {
-    slot[BEGIN_TIME] += ` (${shift >= 0 ? "+" : ""}${shift})`;
-  }
-  if (END_TIME !== -1 && shift !== 0) {
-    slot[END_TIME] += ` (${shift >= 0 ? "+" : ""}${shift})`;
-  }
-  const leaderPhone = slot[LEADER].match(/(?:[-+() ]*\d){10,13}/gm).map(function (s) {
-    return s.trim().replace("(", "").replace(")", "");
-  });
+  const beginTimeArray = slot[BEGIN_TIME].split(":").map((e: string) => Number.parseInt(e)),
+    endTimeArray = slot[END_TIME].split(":").map((e: string) => Number.parseInt(e));
+  const beginTimeDateObject = new Date(
+      (beginTimeArray[0] * 60 + beginTimeArray[1] + shift) * 60000
+    ),
+    endTimeDateObject = new Date((endTimeArray[0] * 60 + endTimeArray[1] + shift) * 60000);
+  slot[BEGIN_TIME] = beginTimeDateObject.toISOString().substring(11, 16);
+  slot[END_TIME] = endTimeDateObject.toISOString().substring(11, 16);
+  const leaderPhone =
+    LEADER !== -1 && slot[LEADER]
+      ? slot[LEADER].match(/(?:[-+() ]*\d){10,13}/gm).map(function (s) {
+          return s.trim().replace("(", "").replace(")", "");
+        })
+      : [null];
   const callLeaderBtn = {
     type: "box",
     layout: "vertical",
@@ -173,7 +178,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
   const slotTitle = [
     {
       type: "text",
-      text: OWNER !== -1 ? slot[OWNER] : "-",
+      text: OWNER !== -1 && slot[OWNER] ? slot[OWNER] : "-",
       align: "center",
       wrap: true,
       weight: "bold",
@@ -181,7 +186,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
     },
     {
       type: "text",
-      text: NAME !== -1 ? slot[NAME] : "กิจกรรมไม่มีชื่อ",
+      text: NAME !== -1 && slot[NAME] ? slot[NAME] : "กิจกรรมไม่มีชื่อ",
       align: "center",
       wrap: true,
       size: "sm",
@@ -201,7 +206,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
     },
     {
       type: "text",
-      text: LEADER !== -1 ? slot[LEADER] : "unknown",
+      text: LEADER !== -1 && slot[LEADER] ? slot[LEADER] : "unknown",
       wrap: true,
       gravity: "top",
       size: "sm",
@@ -215,7 +220,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
     },
     {
       type: "text",
-      text: LOCATION !== -1 ? slot[LOCATION] : "unknown",
+      text: LOCATION !== -1 && slot[LOCATION] ? slot[LOCATION] : "unknown",
       size: "sm",
       wrap: full,
     },
@@ -390,7 +395,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
               },
               {
                 type: "text",
-                text: MEMBER !== -1 ? slot[MEMBER] : "unknown",
+                text: MEMBER !== -1 && slot[MEMBER] ? slot[MEMBER] : "unknown",
                 size: "sm",
                 wrap: true,
               },
@@ -417,8 +422,12 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
     },
   ];
 }
-function generatePlusProcessFlex(props: Array<number | string>) {
+function generatePlusProcessFlex(props: Array<any>) {
   const [duration, totalShift, atSlot, idx, beginTime, endTime, shift, sender] = props;
+  let time = atSlot === idx ? endTime : beginTime;
+  const timeArray = time.split(":").map((e: string) => Number.parseInt(e));
+  const timeDateObject = new Date((timeArray[0] * 60 + timeArray[1] + shift) * 60000);
+  time = timeDateObject.toISOString().substring(11, 16);
   return {
     type: "bubble",
     size: "kilo",
@@ -436,7 +445,7 @@ function generatePlusProcessFlex(props: Array<number | string>) {
           type: "text",
           text: `${duration < 0 ? "" : "+"}${duration} นาที ตั้งแต่ Slot #${atSlot}`,
           align: "center",
-          color: `${duration < 0 ? "#000000" : "#ffffff"}`,
+          color: duration < 0 ? "#000000" : "#ffffff",
           weight: "bold",
           wrap: true,
           gravity: "center",
@@ -483,9 +492,7 @@ function generatePlusProcessFlex(props: Array<number | string>) {
             },
             {
               type: "text",
-              text: `${atSlot === idx ? endTime : beginTime} ${
-                shift !== 0 ? `(${shift >= 0 ? "+" : ""}${shift})` : ""
-              }`,
+              text: time,
               size: "sm",
               weight: "bold",
               align: "end",
@@ -545,10 +552,10 @@ function generatePlusProcessFlex(props: Array<number | string>) {
     },
     styles: {
       header: {
-        backgroundColor: `${duration < 0 ? "#ffff00" : "#fc0000"}`,
+        backgroundColor: duration < 0 ? "#ffff00" : "#fc0000",
       },
       footer: {
-        backgroundColor: `${duration < 0 ? "#ffff54" : "#ff5454"}`,
+        backgroundColor: duration < 0 ? "#ffff54" : "#ff5454",
       },
     },
   };
