@@ -8,9 +8,13 @@ import {
   getTotalReceivers,
   getSlotDetail,
 } from "./announcer";
-import { replyText, getSender, getGroupName, replyFlex } from "./client";
+import { replyText, getSender, getGroupName, replyFlex, pushText } from "./client";
 import { configs } from "./config";
-import { readReceivers } from "./file-manager/readwritejson";
+import {
+  readPlusProcessRecords,
+  readReceivers,
+  writePlusProcessRecords,
+} from "./file-manager/readwritejson";
 import { addReceiverReplyText, helpFlex } from "./templates";
 const { PROCESS_FILE_NAME } = configs;
 const env = dotenv.config().parsed;
@@ -43,9 +47,7 @@ async function handleEvent(event) {
     if (event.message.text.substring(1, 6) === "start") {
       commandMessage = event.message.text.substring(1);
       const result = await addReceiver(id, event.message.text.split(" ").slice(1), chatName);
-      if (result !== null) {
-        await replyText(event.replyToken, addReceiverReplyText(result));
-      }
+      if (result !== null) await replyText(event.replyToken, addReceiverReplyText(result));
     } else if (event.message.text.substring(1, 5) === "stop") {
       commandMessage = "stop";
       const success = removeReceiver(id);
@@ -57,19 +59,25 @@ async function handleEvent(event) {
       event.message.text.substring(1, 2) === "+" ||
       event.message.text.substring(1, 2) === "-"
     ) {
+      const op = event.message.text.substring(1, 2);
+      const arg = event.message.text.split(" ");
+      commandMessage = op + arg[1] + " " + arg[2];
       try {
-        const op = event.message.text.substring(1, 2);
-        const arg = event.message.text.split(" ");
-        const result = await plusProcess(arg, op === "-" ? true : false, sender, id, chatName);
-        commandMessage = op + " " + arg[1] + " " + arg[2];
-        if (result !== null) {
-          await replyText(event.replyToken, addReceiverReplyText(result));
-        }
+        const { records, blackList } = readPlusProcessRecords();
+        if (blackList[event.source.userId]) throw "User is banned";
+        const result = await plusProcess(arg, op === "-", sender, id, chatName);
+        if (result !== null) await replyText(event.replyToken, addReceiverReplyText(result));
+        records.push([timeStamp.toLocaleString(), event.source.userId, sender, commandMessage]);
+        writePlusProcessRecords(records, blackList);
       } catch (err) {
-        await replyText(
-          event.replyToken,
-          'ใส่คำสั่งบวกโปรเซสผิดงับ❌\nต้องแบบนี้น้า✔️ "!+ <minutes> <now/next/Slot No> " หรือ "!- <minutes> <now/next/Slot No> "'
-        );
+        commandMessage += " " + err;
+        if (err === "User is banned")
+          await replyText(event.replyToken, `คุณ ${sender} ถูกแบนจากการ +-โปรเซสอยู่งับ`);
+        else
+          await replyText(
+            event.replyToken,
+            'ใส่คำสั่งบวกโปรเซสผิดงับ❌\nต้องแบบนี้น้า✔️ "!+ <minutes> <now/next/Slot No> " หรือ "!- <minutes> <now/next/Slot No> "'
+          );
       }
     } else if (event.message.text.substring(1, 9) === "filename") {
       commandMessage = "filename";
@@ -141,6 +149,47 @@ async function handleEvent(event) {
         helpFlex(),
         "พิมพ์ !start หรือ !start ตามด้วยชื่อฝ่าย (เช่น !start plan coop) เพื่อเริ่มแจ้ง Slot"
       );
+    } else if (event.message.text.substring(1, 8) === "records") {
+      commandMessage = "records";
+      // Admin only command
+      if (event.source.userId != env.ADMIN_UID)
+        await replyText(event.replyToken, "ไม่สามารถขอ Records ได้ ขอโทดทีงับ");
+      else {
+        const { records } = readPlusProcessRecords();
+        const unique = {};
+        records.forEach((record: Array<number | string>) => {
+          unique[record[1]] = record[2];
+        });
+        await pushText(env.ADMIN_UID, String(Object.entries(unique)));
+      }
+    } else if (event.message.text.substring(1, 4) === "ban") {
+      const bannedId = event.message.text.split(" ")[1];
+      commandMessage = "ban " + bannedId;
+      // Admin only command
+      if (event.source.userId != env.ADMIN_UID)
+        await replyText(event.replyToken, "ไม่สามารถแบนได้ ขอโทดทีงับ");
+      else {
+        const { records, blackList } = readPlusProcessRecords();
+        let bannedUser = "Unknown";
+        records.forEach((record: object) => {
+          if (record[1] === bannedId) bannedUser = record[2];
+        });
+        blackList[bannedId] = [timeStamp.toLocaleString(), bannedUser];
+        writePlusProcessRecords(records, blackList);
+        await replyText(event.replyToken, `แบน ${bannedId.substring(0, 5)}... แล้วงับ`);
+      }
+    } else if (event.message.text.substring(1, 6) === "unban") {
+      const unbannedId = event.message.text.split(" ")[1];
+      commandMessage = "unban " + unbannedId;
+      // Admin only command
+      if (event.source.userId != env.ADMIN_UID)
+        await replyText(event.replyToken, "ไม่สามารถปลดแบนได้ ขอโทดทีงับ");
+      else {
+        const { records, blackList } = readPlusProcessRecords();
+        delete blackList[unbannedId];
+        writePlusProcessRecords(records, blackList);
+        await replyText(event.replyToken, `ปลดแบน ${unbannedId.substring(0, 5)}... แล้วงับ`);
+      }
     } else {
       await replyText(event.replyToken, "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢");
       return;
@@ -172,6 +221,5 @@ async function handleEvent(event) {
       postBackCommand
     );
   }
-  return;
 }
 export { handleEvent };

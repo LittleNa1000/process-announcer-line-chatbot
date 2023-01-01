@@ -217,7 +217,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
       type: "text",
       text: LOCATION !== -1 ? slot[LOCATION] : "unknown",
       size: "sm",
-      wrap: full ? true : false,
+      wrap: full,
     },
   ];
   // -----------Full Slot (3)-----------------------------------------------------------
