@@ -29,10 +29,10 @@ async function setWebhook(webhookURL: string) {
         (await setWebhookEndpointUrl(webhookURL)) ? "Success" : "Failed"
       }`
     );
+    console.log(
+      `Test webhook endpoint URL: ${(await testWebhookEndpointUrl()) ? "Success" : "Failed"}`
+    );
   }
-  console.log(
-    `Test webhook endpoint URL: ${(await testWebhookEndpointUrl()) ? "Success" : "Failed"}`
-  );
   readlineInterface.close();
 }
 function initSystem(lineConfig: { channelAccessToken: string; channelSecret: string }) {

@@ -83,7 +83,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
     contents: [
       {
         type: "text",
-        text: "More detail",
+        text: "รายละเอียด (กดได้แค่ครั้งเดียว)",
         align: "center",
         adjustMode: "shrink-to-fit",
         size: "xs",
@@ -169,7 +169,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
         text: MEMBER !== -1 ? slot[MEMBER] : "unknown",
         wrap: true,
         size: "sm",
-        maxLines: full ? 40 : 12,
+        maxLines: full ? undefined : 12,
       },
     ],
     paddingAll: "xs",
@@ -624,28 +624,26 @@ function helpFlex() {
             contents: [
               {
                 type: "text",
-                text: "เริ่มให้บอทแจ้ง Slot และรับข่าวสารการ +- Process",
-                weight: "bold",
-                decoration: "underline",
-                size: "xs",
-                wrap: true,
-              },
-              {
-                type: "text",
-                text: "- !start จะเป็นการบอกทุก Slot",
+                text: "1. !start เริ่มให้บอทแจ้ง Slot และรับข่าวสารการ +- Process",
                 wrap: true,
                 gravity: "top",
                 size: "sm",
               },
               {
                 type: "text",
-                text: "- !start <List ของชื่อฝ่าย> จะเป็นการบอกเฉพาะของฝ่ายนั้น ๆ\nเช่น !start plan coop จะเป็นการบอก Slot ที่เป็นของฝ่ายแผนกับฝ่ายประสาน",
+                text: "1.1 !start <List ของชื่อฝ่าย> จะเป็นการบอก Slot เฉพาะของฝ่ายนั้น ๆ\nเช่น !start plan coop จะเป็นการบอก Slot ที่เป็นของฝ่ายแผนกับฝ่ายประสาน",
                 size: "sm",
                 wrap: true,
               },
               {
                 type: "text",
-                text: "- !stop หยุดให้บอทแจ้ง Slot และหยุดรับข่าวสารการ +- Process",
+                text: "2. !stop หยุดให้บอทแจ้ง Slot และหยุดรับข่าวสารการ +- Process",
+                size: "sm",
+                wrap: true,
+              },
+              {
+                type: "text",
+                text: "3. !slot <Slot No.> แจ้งรายละเอียดของ Slot ที่ระบุ",
                 size: "sm",
                 wrap: true,
               },
@@ -699,7 +697,7 @@ function helpFlex() {
             contents: [
               {
                 type: "text",
-                text: "คำสั่ง +- Process ทั้งค่าย",
+                text: "คำสั่ง +- Process (ทั้งค่าย)",
                 weight: "bold",
                 align: "center",
                 wrap: true,
@@ -801,7 +799,19 @@ function helpFlex() {
         contents: [
           {
             type: "text",
-            text: "- โปรเซสแบบตารางยังใช้ได้เหมือนเดิม แชทบอทนี้เป็นทางเลือกเสริมสำหรับสตาฟค่าย\n- การ !start เฉย ๆ โดยที่ไม่ระบุฝ่ายอาจจะทำให้แชทที่คุยกันโดนดันได้\n- คนที่สั่ง +- โปรเซสแบบมั่ว ๆ จนสร้างความรำคาญจะถูกแบนจากการสั่ง +- เป็นรายบุคคล",
+            text: "1. โปรเซสแบบตารางยังใช้ได้เหมือนเดิม แชทบอทนี้เป็นทางเลือกเสริมสำหรับสตาฟค่าย",
+            wrap: true,
+            size: "sm",
+          },
+          {
+            type: "text",
+            text: "2. การ !start เฉย ๆ โดยที่ไม่ระบุฝ่ายอาจจะทำให้แชทที่คุยกันโดนดันได้",
+            wrap: true,
+            size: "sm",
+          },
+          {
+            type: "text",
+            text: "3. คนที่สั่ง +- โปรเซสแบบมั่ว ๆ จนสร้างความรำคาญจะถูกแบนจากการสั่ง +- เป็นรายบุคคล",
             wrap: true,
             size: "sm",
           },
@@ -819,7 +829,7 @@ function helpFlex() {
             contents: [
               {
                 type: "text",
-                text: "View Presentation",
+                text: "ดู presentation ของบอทนี้",
                 adjustMode: "shrink-to-fit",
                 size: "xs",
                 align: "center",
@@ -840,18 +850,18 @@ function helpFlex() {
             contents: [
               {
                 type: "text",
-                text: "View Document",
+                text: "ดูโปรเซสแบบตาราง",
                 adjustMode: "shrink-to-fit",
                 size: "xs",
                 align: "center",
                 color: "#ffffff",
               },
             ],
-            backgroundColor: "#dbe366",
+            backgroundColor: "#4285F4",
             cornerRadius: "sm",
             action: {
               type: "uri",
-              uri: "https://docs.google.com/document/d/1rs-aK5OV9isvC4HrIy0Rb4q3cD8NZsXymxfuG3JBWhs/edit?usp=share_link",
+              uri: "https://docs.google.com/spreadsheets/d/1R9JFFPoGs4kPNTlQ4rsMfOLf3-CdVCdzSmwSvdRURAA/edit?usp=sharing",
             },
             paddingAll: "xs",
           },

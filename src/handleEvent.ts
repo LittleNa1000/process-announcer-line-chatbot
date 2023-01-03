@@ -11,12 +11,14 @@ import {
 import { replyText, getSender, getGroupName, replyFlex, pushText } from "./client";
 import { configs } from "./config";
 import {
+  readCounter,
   readPlusProcessRecords,
   readReceivers,
+  writeCounter,
   writePlusProcessRecords,
 } from "./file-manager/readwritejson";
 import { addReceiverReplyText, helpFlex } from "./templates";
-const { PROCESS_FILE_NAME } = configs;
+const { PROCESS_FILE_NAME, MOREDETAIL_BTN_LIMIT } = configs;
 const env = dotenv.config().parsed;
 const config = {
   headers: {
@@ -147,6 +149,15 @@ async function handleEvent(event) {
         helpFlex(),
         "พิมพ์ !start หรือ !start ตามด้วยชื่อฝ่าย (เช่น !start plan coop) เพื่อเริ่มแจ้ง Slot"
       );
+    } else if (event.message.text.substring(1, 5) === "slot") {
+      const slotNum = Number.parseInt(event.message.text.split(" ")[1]);
+      commandMessage = "slot " + slotNum;
+      try {
+        await replyFlex(event.replyToken, getSlotDetail(slotNum), `Slot #${slotNum} full detail`);
+      } catch (err) {
+        commandMessage += " " + err;
+        await replyText(event.replyToken, `ไม่สามารถแสดงรายละเอียดของ Slot #${slotNum} ได้งับ`);
+      }
     } else if (event.message.text.substring(1, 8) === "records") {
       commandMessage = "records";
       // Admin only command
@@ -203,8 +214,13 @@ async function handleEvent(event) {
     let postBackCommand = "Unknown";
     if (event.postback.data.substring(0, 10) === "slotDetail") {
       const slotNum = Number.parseInt(event.postback.data.split(" ")[1]);
-      postBackCommand = "Postback: slotDetail " + slotNum;
+      postBackCommand = "Postback: slot " + slotNum;
       try {
+        const { counter } = readCounter();
+        counter[id] = counter[id] || { chatName: chatName };
+        if (counter[id][slotNum] >= MOREDETAIL_BTN_LIMIT) throw "Exceeded maximum clicks";
+        counter[id][slotNum] = counter[id][slotNum] + 1 || 1;
+        writeCounter(counter);
         await replyFlex(event.replyToken, getSlotDetail(slotNum), `Slot #${slotNum} full detail`);
       } catch (err) {
         postBackCommand += " " + err;
