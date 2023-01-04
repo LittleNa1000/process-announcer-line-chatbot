@@ -91,6 +91,28 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
     },
     paddingAll: "xs",
   };
+  const callSecondLeaderBtn = {
+    type: "box",
+    layout: "vertical",
+    contents: [
+      {
+        type: "text",
+        text: "โทรหาผต. คนที่ 2",
+        adjustMode: "shrink-to-fit",
+        size: "xs",
+        align: "center",
+        color: "#ffffff",
+      },
+    ],
+    backgroundColor: "#c74444",
+    cornerRadius: "sm",
+    justifyContent: "center",
+    action: {
+      type: "uri",
+      uri: `tel:${leaderPhone[1]}`,
+    },
+    paddingAll: "xs",
+  };
   const fullDetailBtn = {
     type: "box",
     layout: "vertical",
@@ -165,7 +187,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
   const slotFooter = {
     type: "box",
     layout: "horizontal",
-    contents: [callLeaderBtn, fullDetailBtn],
+    contents: [callLeaderBtn, leaderPhone.length === 1 ? fullDetailBtn : callSecondLeaderBtn],
     paddingAll: "sm",
     spacing: "md",
   };
