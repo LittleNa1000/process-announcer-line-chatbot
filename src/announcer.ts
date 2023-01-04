@@ -21,6 +21,7 @@ import {
   generateSlotInfoFlex,
   generateSlotInfoText,
 } from "./templates";
+import { logger } from "./logger";
 let intervalId = null,
   startDate = null,
   slots: any,
@@ -92,9 +93,8 @@ function getVariables(): Array<any> {
       getNextSlotTime(),
     ];
   } catch (err) {
-    console.log("getVariables() Error:", err);
+    throw new Error(err);
   }
-  return [];
 }
 function getCurrentTime(): number {
   const currentTime = new Date();
@@ -141,9 +141,7 @@ function getAltText(carousel: Array<any>): string {
   return generateSlotInfoText(slot, shift[lastSlotNum]);
 }
 function getSlotDetail(slotNum: number): Array<object> {
-  if (slotNum <= 0 || slotNum >= slots.length) {
-    throw "Invalid slotNum";
-  }
+  if (slotNum <= 0 || slotNum >= slots.length) throw new Error("Invalid slotNum");
   let slot = [...slots[slotNum]];
   return generateSlotInfoFlex(slot, shift[slotNum], true);
 }
@@ -189,7 +187,7 @@ async function announce() {
     idx++;
     nextSlotTime = getNextSlotTime();
     currentTime = getCurrentTime();
-    console.log(`Announcing #${idx}`);
+    logger.info(`Announcing #${idx}`);
   }
   if (slotsText.length === 0 && bubbles.length === 0) return;
   const { receivers } = readReceivers();
@@ -244,9 +242,7 @@ async function addReceiver(
       preferences: [],
     });
     i = receivers.length - 1;
-  } else if (arg === null) {
-    return null;
-  }
+  } else if (arg === null) return null;
   if (arg !== null) {
     receivers[i].preferences = [];
     arg.forEach((e) => {
@@ -295,7 +291,7 @@ async function plusProcess(
       duration !== 0
     )
   )
-    throw "wrong argument";
+    throw new Error("wrong argument");
   for (let i = atSlot; i < slots.length; ++i) {
     shift[i] += duration;
     slotsBeginTime[i] += duration;

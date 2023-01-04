@@ -3,6 +3,7 @@ import * as express from "express";
 import * as dotenv from "dotenv";
 import { handleEvent } from "./src/handleEvent";
 import { initSystem } from "./src/init";
+import { logger } from "./src/logger";
 
 const env = dotenv.config().parsed;
 const app = express();
@@ -19,12 +20,12 @@ app.post("/webhook", line.middleware(lineConfig), async (req, res) => {
       ? await events.map((item) => handleEvent(item))
       : res.status(200).send("OK");
   } catch (err) {
-    console.log(err);
+    logger.error(err.stack);
     res.status(500).end();
   }
 });
 
 app.listen(env!.PORT, async () => {
-  console.log(`On port ${env!.PORT}`);
+  logger.info(`On port ${env!.PORT}`);
   initSystem(lineConfig);
 });

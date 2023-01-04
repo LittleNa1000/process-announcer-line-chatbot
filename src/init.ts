@@ -4,6 +4,7 @@ import { initAnnouncer } from "./announcer";
 import { initClient } from "./client";
 import { configs } from "./config";
 import { setWebhookEndpointUrl, testWebhookEndpointUrl } from "./client";
+import { logger } from "./logger";
 const readlineInterface = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -24,12 +25,12 @@ function validURL(str: string) {
 }
 async function setWebhook(webhookURL: string) {
   if (validURL(webhookURL)) {
-    console.log(
+    logger.info(
       `Set webhook endpoint URL: ${
         (await setWebhookEndpointUrl(webhookURL)) ? "Success" : "Failed"
       }`
     );
-    console.log(
+    logger.info(
       `Test webhook endpoint URL: ${(await testWebhookEndpointUrl()) ? "Success" : "Failed"}`
     );
   }
@@ -37,7 +38,7 @@ async function setWebhook(webhookURL: string) {
 }
 function initSystem(lineConfig: { channelAccessToken: string; channelSecret: string }) {
   Promise.all([initClient(lineConfig), initAnnouncer()]).then(() => {
-    console.log(
+    logger.info(
       `process-file: ${PROCESS_FILE_NAME}, NODE_ENV: ${
         env!.NODE_ENV
       }, Allow push messages: ${ALLOW_PUSH_MESSAGE}`

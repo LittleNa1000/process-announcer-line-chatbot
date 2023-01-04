@@ -1,18 +1,31 @@
 import { configs } from "./config";
-const { NUM, BEGIN_TIME, END_TIME, DURATION, OWNER, NAME, LOCATION, LEADER, MEMBER, DETAILS } =
-  configs;
+const {
+  NUM,
+  BEGIN_TIME,
+  END_TIME,
+  DURATION,
+  OWNER,
+  NAME,
+  LOCATION,
+  LEADER,
+  MEMBER,
+  DETAILS,
+  MOREDETAIL_BTN_LIMIT,
+} = configs;
 function addReceiverReplyText(result: number | Array<number | string>) {
   return result === -1
     ? `ตอนนี้เลยเวลา Slot สุดท้ายของวันนี้แล้ว ไว้เรียกเราในวันอื่นน้า😴`
     : `เดี๋ยวจะเริ่มประกาศแล้วนะงับ😉\nSlot ถัดไป #${result[0]} เริ่ม ${result[1]} น้า`;
 }
 function generateSlotInfoText(slot: Array<any>, shift: number) {
-  if (BEGIN_TIME !== -1 && shift !== 0) {
-    slot[BEGIN_TIME] += ` (${shift >= 0 ? "+" : ""}${shift})`;
-  }
-  if (END_TIME !== -1 && shift !== 0) {
-    slot[END_TIME] += ` (${shift >= 0 ? "+" : ""}${shift})`;
-  }
+  const beginTimeArray = slot[BEGIN_TIME].split(":").map((e: string) => Number.parseInt(e)),
+    endTimeArray = slot[END_TIME].split(":").map((e: string) => Number.parseInt(e));
+  const beginTimeDateObject = new Date(
+      (beginTimeArray[0] * 60 + beginTimeArray[1] + shift) * 60000
+    ),
+    endTimeDateObject = new Date((endTimeArray[0] * 60 + endTimeArray[1] + shift) * 60000);
+  slot[BEGIN_TIME] = beginTimeDateObject.toISOString().substring(11, 16);
+  slot[END_TIME] = endTimeDateObject.toISOString().substring(11, 16);
   if (LOCATION !== -1) {
     slot[LOCATION] = slot[LOCATION].split("\n");
     slot[LOCATION] = `${slot[LOCATION][0]}${
@@ -71,6 +84,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
     ],
     backgroundColor: "#c74444",
     cornerRadius: "sm",
+    justifyContent: "center",
     action: {
       type: "uri",
       uri: `tel:${leaderPhone[0]}`,
@@ -83,11 +97,13 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
     contents: [
       {
         type: "text",
-        text: "รายละเอียด (กดได้แค่ครั้งเดียว)",
+        text: `รายละเอียด (กดได้ ${MOREDETAIL_BTN_LIMIT} ครั้ง)`,
         align: "center",
         adjustMode: "shrink-to-fit",
-        size: "xs",
+        size: "xxs",
         color: "#ffffff",
+        wrap: true,
+        maxLines: 2,
       },
     ],
     backgroundColor: "#4490c7",
@@ -526,7 +542,7 @@ function generatePlusProcessFlex(props: Array<any>) {
           contents: [
             {
               type: "text",
-              text: `รายละเอียด Slot #${atSlot}`,
+              text: `ดู Slot #${atSlot} (กดได้ ${MOREDETAIL_BTN_LIMIT} ครั้ง)`,
               align: "center",
               adjustMode: "shrink-to-fit",
               size: "xxs",

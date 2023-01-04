@@ -1,6 +1,7 @@
 import * as line from "@line/bot-sdk";
 import { configs } from "./config";
 import { validatePushMessage } from "./validateMessage";
+import { logger } from "./logger";
 const { ALLOW_PUSH_MESSAGE } = configs;
 let client = null;
 function initClient(lineConfig: { channelAccessToken: string; channelSecret: string }) {
@@ -23,12 +24,12 @@ async function pushFlex(
     }
   } else if (elements) messages.push({ type: "flex", altText: altText, contents: elements });
   if (!ALLOW_PUSH_MESSAGE) {
-    console.log("pushFlex", id, messages);
+    logger.info(`pushFlex ${id} ${messages}`);
     return;
   }
   if (messages.length === 0) return;
   await client.pushMessage(id, messages).catch((err) => {
-    console.log(err);
+    logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
   });
 }
 async function replyFlex(
@@ -49,13 +50,13 @@ async function replyFlex(
       notificationDisabled
     )
     .catch((err) => {
-      console.log(err);
+      logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
     });
 }
 async function replyText(replyToken: string, text: string) {
   if (text.length === 0) return;
   await client.replyMessage(replyToken, { type: "text", text: text }).catch((err) => {
-    console.log(err);
+    logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
   });
 }
 
@@ -67,12 +68,12 @@ async function pushText(id: string, bundle: string | Array<string>) {
     });
   } else if (bundle.length !== 0) messages.push({ type: "text", text: bundle });
   if (!ALLOW_PUSH_MESSAGE) {
-    console.log("pushText", id, messages);
+    logger.info(`pushText ${id} ${messages}`);
     return;
   }
   if (messages.length === 0) return;
   await client.pushMessage(id, messages).catch((err) => {
-    console.log(err);
+    logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
   });
 }
 async function getSender(groupId: string, userId: string) {
@@ -84,7 +85,7 @@ async function getSender(groupId: string, userId: string) {
         sender = profile.displayName;
       })
       .catch((err) => {
-        console.log(err);
+        logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
       });
   } else {
     await client
@@ -93,7 +94,7 @@ async function getSender(groupId: string, userId: string) {
         sender = profile.displayName;
       })
       .catch((err) => {
-        console.log(err);
+        logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
       });
   }
   return sender;
@@ -106,7 +107,7 @@ async function getGroupName(id: string) {
       groupName = res.groupName;
     })
     .catch((err) => {
-      console.log(err);
+      logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
     });
   return groupName;
 }
@@ -118,19 +119,19 @@ async function countGroupMembers(id: string) {
       count = res.count;
     })
     .catch((err) => {
-      console.log(err);
+      logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
     });
   return count;
 }
 async function setWebhookEndpointUrl(endpoint: string) {
   const res = await client.setWebhookEndpointUrl(endpoint + "/webhook").catch((err) => {
-    console.log(err);
+    logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
   });
   return Boolean(res);
 }
 async function testWebhookEndpointUrl() {
   const res = await client.testWebhookEndpoint().catch((err) => {
-    console.log(err);
+    logger.error(`${err.originalError.config.url}, ${err.statusMessage}`);
   });
   return res && res.success && res.statusCode == 200;
 }

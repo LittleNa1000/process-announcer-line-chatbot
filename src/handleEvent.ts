@@ -18,6 +18,7 @@ import {
   writePlusProcessRecords,
 } from "./file-manager/readwritejson";
 import { addReceiverReplyText, helpFlex } from "./templates";
+import { logger } from "./logger";
 const { PROCESS_FILE_NAME, MOREDETAIL_BTN_LIMIT } = configs;
 const env = dotenv.config().parsed;
 const config = {
@@ -66,20 +67,21 @@ async function handleEvent(event) {
       commandMessage = op + arg[1] + " " + arg[2];
       try {
         const { records, blackList } = readPlusProcessRecords();
-        if (blackList[event.source.userId]) throw "User is banned";
+        if (blackList[event.source.userId]) throw new Error("User is banned");
         const result = await plusProcess(arg, op === "-", sender, id, chatName);
         if (result !== null) await replyText(event.replyToken, addReceiverReplyText(result));
         records.push([timeStamp.toLocaleString(), event.source.userId, sender, commandMessage]);
         writePlusProcessRecords(records, blackList);
       } catch (err) {
-        commandMessage += " " + err;
-        if (err === "User is banned")
+        commandMessage += " " + err.message;
+        if (err.message === "User is banned")
           await replyText(event.replyToken, `คุณ ${sender} ถูกแบนจากการ +-โปรเซสอยู่งับ`);
-        else
+        else if (err.message === "wrong argument")
           await replyText(
             event.replyToken,
             'ใส่คำสั่งบวกโปรเซสผิดงับ❌\nต้องแบบนี้น้า✔️ "!+ <minutes> <now/next/Slot No> " หรือ "!- <minutes> <now/next/Slot No> "'
           );
+        else logger.error(err.stack);
       }
     } else if (event.message.text.substring(1, 9) === "filename") {
       commandMessage = "filename";
@@ -108,10 +110,10 @@ async function handleEvent(event) {
         }\nTotal Chat Rooms: ${totalChats}\nTotal Receivers: ${totalReceivers}\nidx: ${idx}/${totalSlots}\n+-Total: ${totalShift} min\n+-Next Slot: ${nextSlotShift} min\nCurrent Time: ${currentDateObject
           .toISOString()
           .substring(11, 16)}\nNext Slot: ${nextSlotDateObject.toISOString().substring(11, 16)}`;
-        console.log(text.split("\n").toString());
+        logger.info(text.split("\n").toString());
         await replyText(event.replyToken, text);
       } catch (err) {
-        console.log(err);
+        logger.error(err.stack);
         await replyText(event.replyToken, "!debug มีปัญหางับ มาเช็กด่วน ๆ");
       }
     } else if (event.message.text.substring(1, 6) === "quota") {
@@ -125,7 +127,7 @@ async function handleEvent(event) {
           usage = res.data.totalUsage;
         })
         .catch((err) => {
-          console.log(err);
+          logger.error(`${err.config.url}, ${err.response.data.message}`);
         });
       await axios
         .get("https://api.line.me/v2/bot/message/quota/", config)
@@ -134,7 +136,7 @@ async function handleEvent(event) {
           type = res.data.type;
         })
         .catch((err) => {
-          console.log(err);
+          logger.error(`${err.config.url}, ${err.response.data.message}`);
         });
       const { receivers } = readReceivers();
       const totalReceivers = getTotalReceivers(receivers);
@@ -155,8 +157,10 @@ async function handleEvent(event) {
       try {
         await replyFlex(event.replyToken, getSlotDetail(slotNum), `Slot #${slotNum} full detail`);
       } catch (err) {
-        commandMessage += " " + err;
-        await replyText(event.replyToken, `ไม่สามารถแสดงรายละเอียดของ Slot #${slotNum} ได้งับ`);
+        if (err.message === "Invalid slotNum") {
+          commandMessage += " " + err.message;
+          await replyText(event.replyToken, `ไม่สามารถแสดงรายละเอียดของ Slot #${slotNum} ได้งับ`);
+        } else logger.error(err.stack);
       }
     } else if (event.message.text.substring(1, 8) === "records") {
       commandMessage = "records";
@@ -202,12 +206,10 @@ async function handleEvent(event) {
     } else {
       return await replyText(event.replyToken, "ไม่เข้าใจคำสั่งอ่า ขอโทษทีน้า 😢");
     }
-    console.log(
-      timeStamp.toLocaleString(),
-      sender,
-      event.source.userId,
-      id.charAt(0) === "U" ? "(dm)" : "in " + chatName,
-      commandMessage
+    logger.info(
+      `${sender} ${event.source.userId} ${
+        id.charAt(0) === "U" ? "(dm)" : "in " + chatName
+      } ${commandMessage}`
     );
   } else if (event.type === "postback") {
     const [timeStamp, id, sender, chatName] = await getLogInfo(event);
@@ -218,20 +220,21 @@ async function handleEvent(event) {
       try {
         const { counter } = readCounter();
         counter[id] = counter[id] || { chatName: chatName };
-        if (counter[id][slotNum] >= MOREDETAIL_BTN_LIMIT) throw "Exceeded maximum clicks";
+        if (counter[id][slotNum] >= MOREDETAIL_BTN_LIMIT)
+          throw new Error("Exceeded maximum clicks");
         counter[id][slotNum] = counter[id][slotNum] + 1 || 1;
         writeCounter(counter);
         await replyFlex(event.replyToken, getSlotDetail(slotNum), `Slot #${slotNum} full detail`);
       } catch (err) {
-        postBackCommand += " " + err;
+        if (err.message === "Exceeded maximum clicks" || err.message === "Invalid slotNum")
+          postBackCommand += " " + err.message;
+        else logger.error(err.stack);
       }
     }
-    console.log(
-      timeStamp.toLocaleString(),
-      sender,
-      event.source.userId,
-      id.charAt(0) === "U" ? "(dm)" : "in " + chatName,
-      postBackCommand
+    logger.info(
+      `${sender} ${event.source.userId} ${
+        id.charAt(0) === "U" ? "(dm)" : "in " + chatName
+      } ${postBackCommand}`
     );
   }
 }

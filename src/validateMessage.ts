@@ -1,5 +1,6 @@
 import axios from "axios";
 import * as dotenv from "dotenv";
+import { logger } from "./logger";
 const env = dotenv.config().parsed;
 const config = {
   headers: {
@@ -12,10 +13,10 @@ async function validatePushMessage(messages: Array<any>) {
   await axios
     .post("https://api.line.me/v2/bot/message/validate/push", { messages: messages }, config)
     .then((res) => {
-      console.log("results: ", res.data);
+      logger.info(`results: ${res.data}`);
     })
     .catch((err) => {
-      console.log("error: ", err.response.data);
+      logger.error(`error: ${err.response.data}`);
     });
 }
 export { validatePushMessage };
