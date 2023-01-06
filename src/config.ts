@@ -9,7 +9,7 @@ export const configs = {
   LEADER: 7,
   MEMBER: 8,
   DETAILS: 9,
-  PROCESS_FILE_NAME: "process-test.csv",
+  PROCESS_FILE_NAME: "6-1-66.csv",
   ALLOW_PUSH_MESSAGE: true,
   PUSH_MESSAGE_TYPE: "flex", //flex or text
   MAX_BUBBLE_PER_CAROUSEL: 3, //Must be between 2 to 12

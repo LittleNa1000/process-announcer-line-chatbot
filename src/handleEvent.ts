@@ -220,7 +220,7 @@ async function handleEvent(event) {
       try {
         const { counter } = readCounter();
         counter[id] = counter[id] || { chatName: chatName };
-        if (counter[id][slotNum] >= MOREDETAIL_BTN_LIMIT)
+        if (counter[id][slotNum] || 0 >= MOREDETAIL_BTN_LIMIT)
           throw new Error("Exceeded maximum clicks");
         counter[id][slotNum] = counter[id][slotNum] + 1 || 1;
         writeCounter(counter);

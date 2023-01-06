@@ -133,7 +133,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
     action: {
       type: "postback",
       label: "action",
-      data: `slotDetail ${NUM !== -1 ? slot[NUM] : "0"}`,
+      data: `slotDetail ${NUM !== -1 && slot[NUM] ? slot[NUM] : "0"}`,
     },
     paddingAll: "xs",
   };
@@ -147,7 +147,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
         contents: [
           {
             type: "text",
-            text: NUM !== -1 ? "#" + slot[NUM] : "#0",
+            text: NUM !== -1 && slot[NUM] ? "#" + slot[NUM] : "#0",
             weight: "bold",
             adjustMode: "shrink-to-fit",
             size: "xs",
@@ -165,9 +165,13 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
           {
             type: "text",
             text:
-              BEGIN_TIME !== -1 && END_TIME !== -1 && slot[BEGIN_TIME] !== slot[END_TIME]
+              BEGIN_TIME !== -1 &&
+              END_TIME !== -1 &&
+              slot[BEGIN_TIME] &&
+              slot[END_TIME] &&
+              slot[BEGIN_TIME] !== slot[END_TIME]
                 ? slot[BEGIN_TIME] + " - " + slot[END_TIME]
-                : BEGIN_TIME !== -1
+                : BEGIN_TIME !== -1 && slot[BEGIN_TIME]
                 ? slot[BEGIN_TIME]
                 : "ไม่มีเวลาระบุ",
             weight: "bold",
@@ -204,7 +208,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
       },
       {
         type: "text",
-        text: MEMBER !== -1 ? slot[MEMBER] : "unknown",
+        text: MEMBER !== -1 && slot[MEMBER] ? slot[MEMBER] : "unknown",
         wrap: true,
         size: "sm",
         maxLines: full ? undefined : 12,
@@ -332,7 +336,7 @@ function generateSlotInfoFlex(slot: Array<any>, shift: number, full = false): Ar
             },
             {
               type: "text",
-              text: DETAILS !== -1 ? slot[DETAILS] : "-",
+              text: DETAILS !== -1 && slot[DETAILS] ? slot[DETAILS] : "-",
               wrap: true,
               size: "sm",
             },
