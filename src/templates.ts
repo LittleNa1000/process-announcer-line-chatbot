@@ -882,7 +882,7 @@ function helpFlex() {
             cornerRadius: "sm",
             action: {
               type: "uri",
-              uri: "https://docs.google.com/presentation/d/1_wiHBiMs6Dx3n4XP0IYYMnl4n5VU9UoUBYdjTOZIOyc/edit?usp=sharing",
+              uri: "https://docs.google.com/presentation/d/1Ouj5P4rxBRZ6FndOq_lf1tyow4HQnaOX6cCmNXp2_hc/edit?usp=sharing",
             },
             paddingAll: "xs",
           },
@@ -892,7 +892,7 @@ function helpFlex() {
             contents: [
               {
                 type: "text",
-                text: "ดูโปรเซสแบบตาราง",
+                text: "ดู document ของบอทนี้",
                 adjustMode: "shrink-to-fit",
                 size: "xs",
                 align: "center",
@@ -903,7 +903,7 @@ function helpFlex() {
             cornerRadius: "sm",
             action: {
               type: "uri",
-              uri: "https://docs.google.com/spreadsheets/d/1R9JFFPoGs4kPNTlQ4rsMfOLf3-CdVCdzSmwSvdRURAA/edit?usp=sharing",
+              uri: "https://docs.google.com/document/d/1rs-aK5OV9isvC4HrIy0Rb4q3cD8NZsXymxfuG3JBWhs/edit?usp=share_link",
             },
             paddingAll: "xs",
           },
