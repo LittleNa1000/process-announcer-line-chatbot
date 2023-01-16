@@ -5,6 +5,7 @@ const {
   BEGIN_TIME,
   END_TIME,
   OWNER,
+  NAME,
   PUSH_MESSAGE_TYPE,
   MAX_BUBBLE_PER_CAROUSEL,
   ANNOUNCE_INTERVAL,
@@ -29,7 +30,8 @@ let intervalId = null,
   idx = 0,
   shift: Array<number>,
   slotsBeginTime: Array<number>,
-  totalShift = 0;
+  totalShift = 0,
+  slotNumToIdx = {};
 type AddReceiverResults = null | number | Array<number | string>;
 type Receiver = { id: string; chatName: string; members: number; preferences: Array<string> };
 async function initAnnouncer() {
@@ -39,11 +41,10 @@ async function initAnnouncer() {
   let dateDiff = 0,
     temp = new Array(slots.length + 10).fill(0);
   for (let i = 1; i < slots.length; ++i) {
+    slotNumToIdx[slots[i][NUM]] = i;
     const slotTime = slots[i][BEGIN_TIME].split(":").map((e) => Number.parseInt(e));
     temp[i] = slotTime[0] * 60 + slotTime[1];
-    if (temp[i] < temp[i - 1]) {
-      ++dateDiff;
-    }
+    if (temp[i] < temp[i - 1]) ++dateDiff;
     slotsBeginTime[i] = temp[i] + dateDiff * 60 * 24;
   }
   shift = new Array(slots.length + 10).fill(0);
@@ -65,11 +66,9 @@ function resetIdx(): number {
   let minTime = Number.POSITIVE_INFINITY;
   for (let i = 0; i < slots.length - 1; ++i) {
     nextSlotTime = getNextSlotTime(i);
-    if (currentTime <= nextSlotTime) {
-      if (nextSlotTime < minTime) {
-        minTime = nextSlotTime;
-        minIdx = i;
-      }
+    if (currentTime <= nextSlotTime && nextSlotTime < minTime) {
+      minTime = nextSlotTime;
+      minIdx = i;
     }
   }
   return minIdx;
@@ -133,24 +132,20 @@ function filterSlotsElement(
   }
   return [filteredSlotsElement, filteredBubblesPattern];
 }
-function getAltText(lastSlotNum: number): string {
-  // const lastSlotNum = Number.parseInt(
-  //   carousel[carousel.length - 1].header.contents[0].contents[0].text.replace("#", "") || 0
-  // );
-  if (lastSlotNum === 0) return "Unknown Slot";
-  let slot = [...slots[lastSlotNum]];
-  return generateSlotInfoText(slot, shift[lastSlotNum]);
+function getAltText(carousel: Array<any>): string {
+  const lastBubbleSlotNum = Number.parseInt(
+    carousel[carousel.length - 1].header.contents[0].contents[0].text.replace("#", "")
+  );
+  const lastBubbleSlotIdx = slotNumToIdx[lastBubbleSlotNum] || lastBubbleSlotNum;
+  if (Number.isNaN(lastBubbleSlotIdx) || lastBubbleSlotIdx >= slots.length) return "Unknown Slot";
+  let slot = [...slots[lastBubbleSlotIdx]];
+  return generateSlotInfoText(slot, shift[lastBubbleSlotIdx]);
 }
 function getSlotDetail(slotNum: number): Array<object> {
-  let idxNum = -1;
-  for (let i = 0; i < slots.length; ++i)
-    if (Number.parseInt(slots[i][NUM]) === slotNum) {
-      idxNum = i;
-      break;
-    }
-  if (idxNum <= 0 || idxNum >= slots.length) throw new Error("Invalid slotNum");
-  let slot = [...slots[idxNum]];
-  return generateSlotInfoFlex(slot, shift[idxNum], true);
+  const slotIdx = slotNumToIdx[slotNum] || slotNum;
+  if (slotIdx <= 0 || slotIdx >= slots.length) throw new Error("Invalid slotNum");
+  let slot = [...slots[slotIdx]];
+  return generateSlotInfoFlex(slot, shift[slotIdx], true);
 }
 async function announce() {
   if (idx >= slots.length - 1) {
@@ -161,7 +156,6 @@ async function announce() {
     slotsOwner: Array<string> = [],
     bubbles: Array<object> = [],
     bubblesPattern: Array<number> = [],
-    slotsIndex: Array<number> = [],
     countCarousel = 0,
     current = 0,
     nextSlotTime = getNextSlotTime(),
@@ -190,13 +184,12 @@ async function announce() {
         bubbles.push(bubble);
         slotsOwner.push(OWNER !== -1 ? slot[OWNER].toUpperCase() : "");
         bubblesPattern.push(slotBubble.length);
-        slotsIndex.push(idx + 1);
       });
     }
     idx++;
     nextSlotTime = getNextSlotTime();
     currentTime = getCurrentTime();
-    logger.info(`Announcing #${slot[NUM]} (idx=${idx})`);
+    logger.info(`Announcing #${idx} ${NAME !== -1 && slot[NAME] ? slot[NAME] : "Unknown"}`);
   }
   if (slotsText.length === 0 && bubbles.length === 0) return;
   const { receivers } = readReceivers();
@@ -210,23 +203,19 @@ async function announce() {
       );
       let carousels = [],
         carousel = [],
-        altTextList = [],
-        lastSlotNum = slotsIndex[0];
+        altTextList = [];
       for (let i = 0; i < filteredBubbles.length; ) {
         if (filteredBubblesPattern[i] + carousel.length > MAX_BUBBLE_PER_CAROUSEL) {
           carousels.push(carousel);
-          altTextList.push(getAltText(lastSlotNum));
+          altTextList.push(getAltText(carousel));
           carousel = [];
         }
         let t = filteredBubblesPattern[i];
-        for (let j = 0; j < t; ++j, ++i) {
-          carousel.push(filteredBubbles[i]);
-          lastSlotNum = slotsIndex.shift();
-        }
+        for (let j = 0; j < t; ++j, ++i) carousel.push(filteredBubbles[i]);
       }
       if (carousel.length !== 0) {
         carousels.push(carousel);
-        altTextList.push(getAltText(lastSlotNum));
+        altTextList.push(getAltText(carousel));
         carousel = [];
       }
       await pushFlex(receiver.id, carousels, altTextList);
